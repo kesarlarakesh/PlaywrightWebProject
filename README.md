@@ -37,26 +37,25 @@ PlaywrightWebProject/
 │   └── TestUtils.ts        # Common test utilities
 │
 ├── playwright.config.ts    # Playwright configuration
-├── generate-allure-report.bat # Script to generate Allure reports
+├── allure-utils.js         # Unified Allure utility functions
+├── allure-utils.bat        # Batch file for Allure operations
 └── package.json            # Project dependencies
 ```
 
-## Environment Configuration
+## Prerequisites
+- Node.js (v14 or higher)
+- npm (v6 or higher)
+- Playwright Test
+- Allure Commandline (for report generation)
 
-The project supports multiple environments (dev, staging, prod) through the `config/config.json` file:
-
-- **dev**: Development environment
-- **staging**: Staging/QA environment
-- **prod**: Production environment (default)
-
-## Running Tests
-
-### Installation
+## Installation
 
 ```bash
 npm install
 npx playwright install
 ```
+
+## Running Tests
 
 ### Running Tests with Different Environments
 
@@ -94,64 +93,61 @@ npm run test:debug
 
 ## Allure Reporting
 
-The project has been configured to use Allure for test reporting. Allure provides rich, interactive reports with detailed test execution information.
+The project uses Allure for comprehensive test reporting. All screenshots are saved directly to the `allure-results` directory and automatically included in reports.
 
-### Running Tests with Allure Reporting
+### Allure Utilities
 
-```bash
-# Run hotel booking test with Allure reporting
-npm run test:hotel:allure
-
-# Run all tests with Allure reporting
-npm run test:allure
-```
-
-### Generating and Viewing Allure Reports
+Use the unified `allure-utils.js` script to handle all Allure-related operations:
 
 ```bash
-# Generate and open Allure report
-.\generate-allure-report.bat
+# Full Allure report process (import, clean, generate, open)
+npm run allure:full
 
-# Or use these individual commands
+# Import screenshots to Allure results
+npm run allure:import
+
+# Clean old Allure results
+npm run allure:clean
+
+# Generate Allure report
 npm run allure:generate
+
+# Open Allure report
 npm run allure:open
 ```
 
-For more details on Allure reporting, see [ALLURE-README.md](./ALLURE-README.md).
+### Viewing Allure Reports
 
-### Running with CLI Arguments
+Due to browser security restrictions, Allure reports cannot be viewed directly from the file system. They must be served by a web server.
 
-You can also specify the environment directly:
+To view the report:
 
-```bash
-npx playwright test --env=dev
-```
+1. Run the batch file:
+   ```
+   ./view-report.bat
+   ```
+   
+   Or run the Node.js script directly:
+   ```
+   node view-report.js
+   ```
 
-## Page Objects
+2. The report will open automatically in your default browser
+3. When done viewing, close the browser tab and press Ctrl+C in the terminal
 
-- **BasePage**: Contains common methods for all pages
-- **HomePage**: Handles actions on the AirAsia homepage
-- **HotelListingPage**: Manages hotel search results and selection
-- **HotelDetailsPage**: Handles room and rate plan selection
-- **GuestDetailsPage**: Manages guest information forms
-- **PaymentPage**: Handles payment form interactions
+## Screenshot Management
 
-## Configuration Management
+The project has been updated to save screenshots directly to the `allure-results` folder, which improves workflow and makes reports more reliable:
 
-Environment-specific configuration is managed through the `ConfigManager` class:
+- All screenshots are now saved directly to the `allure-results` directory
+- Screenshot filenames include timestamps to prevent conflicts
+- Allure metadata is created automatically for each screenshot
+- No need for multiple screenshot copying operations
 
-```typescript
-import { ConfigManager } from "../utils/ConfigManager";
+## Environment Configuration
 
-// Get configuration instance
-const config = ConfigManager.getInstance();
+The project supports multiple environments (dev, staging, prod) through the `config/config.json` file:
 
-// Get base URL for current environment
-const baseUrl = config.getBaseUrl();
-
-// Get environment-specific value
-const timeout = config.getEnvValue("timeout", 30000);
-
-// Get current environment name
-const env = config.getEnvironment();
-```
+- **dev**: Development environment
+- **staging**: Staging/QA environment
+- **prod**: Production environment (default)
