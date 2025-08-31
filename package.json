@@ -10,11 +10,12 @@
     "test:hotel:allure": "npx playwright test tests/hotel_e2e.spec.ts -g \"Verify hotel funnel check\" --workers=1 --reporter=allure-playwright",
     "test:hotel:headless": "cross-env HEADLESS=true npx playwright test tests/hotel_e2e.spec.ts -g \"Verify hotel funnel check\" --workers=1 --reporter=allure-playwright",
     "test:hotel:headed": "cross-env HEADLESS=false npx playwright test tests/hotel_e2e.spec.ts -g \"Verify hotel funnel check\" --workers=1 --reporter=allure-playwright",
-    "allure:generate": "allure generate allure-results --clean -o allure-report",
-    "allure:open": "allure open allure-report",
-    "allure:with-screenshots": "node import-screenshots.js && npm run allure:generate && npm run allure:open",
-    "report:serve": "node view-report.js",
-    "test:with-report": "npx playwright test && npm run report:serve"
+    "allure:import": "node allure-utils.js import",
+    "allure:clean": "node allure-utils.js clean",
+    "allure:generate": "node allure-utils.js generate",
+    "allure:open": "node allure-utils.js open",
+    "allure:full": "node allure-utils.js full-process",
+    "test:with-report": "npx playwright test && npm run allure:full"
   },
   "keywords": [],
   "author": "",

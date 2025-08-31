@@ -4,14 +4,15 @@ const { execSync } = require('child_process');
 
 // Define paths
 const allureResultsPath = path.join(process.cwd(), 'allure-results');
-const screenshotsPath = path.join(process.cwd(), 'screenshots');
 const testResultsPath = path.join(process.cwd(), 'test-results');
 
 /**
  * Import screenshots from test-results to allure-results
+ * Now we're only importing from test-results since our direct screenshots
+ * are already being saved to allure-results
  */
 function importScreenshots() {
-  console.log('Importing screenshots to Allure results...');
+  console.log('Importing screenshots from test-results to Allure results...');
   
   // Ensure allure-results directory exists
   if (!fs.existsSync(allureResultsPath)) {

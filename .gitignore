@@ -6,10 +6,14 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 
+# Old screenshot directory (no longer used)
+/screenshots/
+
 # Allure report output (generated reports)
 # We keep configurations but not the generated reports
 /allure-report/
 /allure-results/
 
-# Keep test history
+# But keep test history and selected screenshots for baseline comparisons
 !/allure-results/history/
+!/allure-results/baseline-*.png

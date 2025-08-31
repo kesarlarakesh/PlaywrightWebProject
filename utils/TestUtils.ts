@@ -91,30 +91,43 @@ export class TestUtils {
   }
   
   /**
-   * Take screenshot with unique name
+   * Take screenshot with unique name and save directly to allure-results
    * @param page - Playwright page
    * @param name - Base name for screenshot
    * @param location - Optional location/name suffix
    */
   static async takeScreenshot(page: Page, name: string, location?: string): Promise<void> {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const timestamp = new Date().getTime();
     const fileName = location ? 
-      `${name}-${location}-${timestamp}.png` : 
-      `${name}-${timestamp}.png`;
+      `${timestamp}-${name}-${location}.png` : 
+      `${timestamp}-${name}.png`;
     
-    // Get screenshot path from config, default to 'screenshots'
-    const screenshotPath = TestUtils.config.getValue<string>("screenshotPath", "screenshots");
+    // Use allure-results directory for screenshots
+    const screenshotPath = 'allure-results';
     
     // Create directory if it doesn't exist
     if (!fs.existsSync(screenshotPath)) {
       fs.mkdirSync(screenshotPath, { recursive: true });
     }
       
+    // Take the screenshot
     await page.screenshot({
       path: path.join(screenshotPath, fileName)
     });
     
-    console.log(`Screenshot saved: ${path.join(screenshotPath, fileName)}`);
+    // Create attachment metadata for Allure
+    const attachmentJson = {
+      name: location ? `${name} (${location})` : name,
+      source: fileName,
+      type: 'image/png'
+    };
+    
+    fs.writeFileSync(
+      path.join(screenshotPath, `${timestamp}-attachment.json`),
+      JSON.stringify(attachmentJson)
+    );
+    
+    console.log(`Screenshot saved to Allure results: ${fileName}`);
   }
   
   /**

@@ -1,7 +1,7 @@
 @echo off
-echo Importing screenshots for Allure report...
+echo Processing test results for Allure report...
 
-REM Run the screenshot import script
+REM Run the script to import any screenshots from test-results
 node import-screenshots.js
 
 REM Generate and open the Allure report

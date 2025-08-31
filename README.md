@@ -7,6 +7,9 @@ This project implements automated end-to-end tests for hotel booking using Playw
 ```
 PlaywrightWebProject/
 │
+├── allure-results/         # Allure test results data
+├── allure-report/          # Generated Allure HTML reports
+│
 ├── config/                 # Configuration files
 │   └── config.json         # Environment-specific configuration
 │
@@ -22,16 +25,19 @@ PlaywrightWebProject/
 ├── screenshots/            # Test screenshots
 │
 ├── tests/                  # Test files
-│   ├── hotel_e2e.spec.ts   # Original test file
-│   ├── hotel_e2e_pom.spec.ts # Refactored test using POM
+│   ├── hotel_e2e.spec.ts   # Hotel booking test file
 │   └── testdata/           # Test data files
 │       └── testdata.json   # Structured test data
 │
 ├── utils/                  # Utility functions
+│   ├── AllureReporter.ts   # Allure reporting utilities
 │   ├── ConfigManager.ts    # Configuration management
+│   ├── ReportingAdapter.ts # Adapter for reporting systems
+│   ├── ReportingUtils.ts   # Basic reporting utilities
 │   └── TestUtils.ts        # Common test utilities
 │
 ├── playwright.config.ts    # Playwright configuration
+├── generate-allure-report.bat # Script to generate Allure reports
 └── package.json            # Project dependencies
 ```
 
@@ -72,12 +78,46 @@ npm run test:hotel:dev
 # Run hotel booking test in staging environment
 npm run test:hotel:staging
 
-# Run hotel booking test in headed mode
+# Run tests in headless mode (browser invisible, faster)
+npm run test:hotel:headless
+
+# Run tests in headed mode (browser visible, good for debugging)
 npm run test:hotel:headed
+
+# Or use the batch files
+run-tests-headless.bat
+run-tests-headed.bat
 
 # Debug tests
 npm run test:debug
 ```
+
+## Allure Reporting
+
+The project has been configured to use Allure for test reporting. Allure provides rich, interactive reports with detailed test execution information.
+
+### Running Tests with Allure Reporting
+
+```bash
+# Run hotel booking test with Allure reporting
+npm run test:hotel:allure
+
+# Run all tests with Allure reporting
+npm run test:allure
+```
+
+### Generating and Viewing Allure Reports
+
+```bash
+# Generate and open Allure report
+.\generate-allure-report.bat
+
+# Or use these individual commands
+npm run allure:generate
+npm run allure:open
+```
+
+For more details on Allure reporting, see [ALLURE-README.md](./ALLURE-README.md).
 
 ### Running with CLI Arguments
 

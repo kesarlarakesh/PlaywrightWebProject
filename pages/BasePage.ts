@@ -1,5 +1,7 @@
 import { Page, Locator, expect } from "@playwright/test";
 import { ConfigManager } from "../utils/ConfigManager";
+import * as fs from "fs";
+import * as path from "path";
 
 /**
  * Base Page class that provides common functionality for all page objects
@@ -174,11 +176,34 @@ export class BasePage {
   }
 
   /**
-   * Take a screenshot with a specified name
+   * Take a screenshot with a specified name and save to Allure results
    * @param name - Name of the screenshot file
    */
   async takeScreenshot(name: string): Promise<void> {
-    await this.page.screenshot({ path: `screenshots/${name}.png` });
+    const timestamp = new Date().getTime();
+    const fileName = `${timestamp}-${name}.png`;
+    const screenshotPath = 'allure-results';
+    
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(screenshotPath)) {
+      fs.mkdirSync(screenshotPath, { recursive: true });
+    }
+    
+    await this.page.screenshot({ path: path.join(screenshotPath, fileName) });
+    
+    // Create attachment metadata for Allure
+    const attachmentJson = {
+      name: name,
+      source: fileName,
+      type: 'image/png'
+    };
+    
+    fs.writeFileSync(
+      path.join(screenshotPath, `${timestamp}-attachment.json`),
+      JSON.stringify(attachmentJson)
+    );
+    
+    console.log(`Screenshot saved to Allure results: ${fileName}`);
   }
 
   /**

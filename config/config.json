@@ -20,5 +20,5 @@
     }
   },
   "defaultEnvironment": "prod",
-  "screenshotPath": "screenshots"
+  "screenshotPath": "allure-results"
 }
