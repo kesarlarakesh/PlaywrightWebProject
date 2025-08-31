@@ -5,7 +5,16 @@
   "main": "index.js",
   "scripts": {
     "test": "npx playwright test",
-    "test:hotel": "npx playwright test tests/hotel_e2e.spec.ts -g \"Verify hotel funnel check\" --workers=1"
+    "test:hotel": "npx playwright test tests/hotel_e2e.spec.ts -g \"Verify hotel funnel check\" --workers=1",
+    "test:allure": "npx playwright test --reporter=allure-playwright",
+    "test:hotel:allure": "npx playwright test tests/hotel_e2e.spec.ts -g \"Verify hotel funnel check\" --workers=1 --reporter=allure-playwright",
+    "test:hotel:headless": "cross-env HEADLESS=true npx playwright test tests/hotel_e2e.spec.ts -g \"Verify hotel funnel check\" --workers=1 --reporter=allure-playwright",
+    "test:hotel:headed": "cross-env HEADLESS=false npx playwright test tests/hotel_e2e.spec.ts -g \"Verify hotel funnel check\" --workers=1 --reporter=allure-playwright",
+    "allure:generate": "allure generate allure-results --clean -o allure-report",
+    "allure:open": "allure open allure-report",
+    "allure:with-screenshots": "node import-screenshots.js && npm run allure:generate && npm run allure:open",
+    "report:serve": "node view-report.js",
+    "test:with-report": "npx playwright test && npm run report:serve"
   },
   "keywords": [],
   "author": "",
@@ -13,6 +22,9 @@
   "devDependencies": {
     "@playwright/test": "^1.55.0",
     "@types/node": "^24.3.0",
+    "allure-commandline": "^2.34.1",
+    "allure-playwright": "^3.3.3",
+    "cross-env": "^10.0.0",
     "typescript": "^5.9.2"
   }
 }

@@ -10,6 +10,8 @@ import { PaymentPage } from "../pages/PaymentPage";
 // Import utilities
 import { ConfigManager } from "../utils/ConfigManager";
 import { TestDataManager } from "../testdata/testDataManager";
+import { ReportingAdapter } from "../utils/ReportingAdapter";
+import { AllureScreenshots } from "../utils/AllureScreenshots";
 
 // Initialize configuration and test data managers
 const config = ConfigManager.getInstance();
@@ -27,7 +29,17 @@ const captureScreenshots = commonData.testFlags?.captureScreenshots !== false; /
 
 test.describe("Hotel Booking Flow", () => {
   for (const hoteldata of hotelDestinations) {
-    test(`Verify hotel funnel check - ${hoteldata.name}`, async ({ page }) => {
+    test(`Verify hotel funnel check - ${hoteldata.name}`, async ({ page }, testInfo) => {
+      // Attach test data to report
+      await ReportingAdapter.attachJson(testInfo, "Test Data", hoteldata);
+      
+      // Add test metadata for Allure report
+      ReportingAdapter.addTestInfo(testInfo, {
+        description: `Hotel booking test for ${hoteldata.name}`,
+        story: 'Hotel Booking Flow',
+        severity: 'critical',
+        tags: ['hotel-booking', 'e2e', hoteldata.name]
+      });
       // Performance tracking
       const startTime = Date.now();
       
@@ -50,10 +62,18 @@ test.describe("Hotel Booking Flow", () => {
         try {
           testStatus.startStep = "Navigate to homepage";
           console.log("Navigating to AirAsia homepage...");
+          await homePage.ensureFocus();
           await homePage.navigateToHomepage();
           
           if (captureScreenshots) {
             await homePage.takeScreenshot(`homepage-${hoteldata.name}`);
+            // Also attach to report
+            await ReportingAdapter.captureScreenshot(page, testInfo, `homepage-${hoteldata.name}`);
+            // Add a direct screenshot to Allure
+            await AllureScreenshots.addScreenshot(`Homepage - ${hoteldata.name}`, async () => {
+              return await page.screenshot();
+            });
+            ReportingAdapter.reportStep(`Loaded homepage for ${hoteldata.name}`);
           }
         } catch (error: any) {
           testStatus.failureReason = `Failed to navigate to homepage: ${error.message}`;
@@ -150,6 +170,9 @@ test.describe("Hotel Booking Flow", () => {
           testStatus.startStep = "Verify search results";
           console.log("Verifying search results...");
           
+          // Ensure page is in focus
+          await hotelListingPage.ensureFocus();
+          
           // Wait for results with extended timeout
           await hotelListingPage.waitForSearchResults(30000);
           
@@ -157,6 +180,13 @@ test.describe("Hotel Booking Flow", () => {
             await page.screenshot({
               path: `screenshots/search-results-${hoteldata.name}.png`,
             });
+            // Also attach to report
+            await ReportingAdapter.captureScreenshot(page, testInfo, `search-results-${hoteldata.name}`);
+            // Add a direct screenshot to Allure
+            await AllureScreenshots.addScreenshot(`Search Results - ${hoteldata.name}`, async () => {
+              return await page.screenshot({ fullPage: true });
+            });
+            ReportingAdapter.reportStep(`Found search results for ${hoteldata.name}`);
           }
           
           // Verify results and make assertions
@@ -242,6 +272,8 @@ test.describe("Hotel Booking Flow", () => {
             
             while (attempts < maxAttempts) {
               try {
+                console.log("Ensuring page is in focus before clicking...");
+                await hotelDetailsPage.ensureFocus();
                 await hotelDetailsPage.clickBookNow(ratePlan);
                 break; // Success, exit the loop
               } catch (error: any) {
@@ -381,10 +413,55 @@ test.describe("Hotel Booking Flow", () => {
         console.log('Skipping payment details as specified in configuration');
       }
       
+      // Set test status as successful if we reached this point
+      testStatus.success = true;
+      testStatus.endStep = 'Test completed successfully';
+      
       // Calculate test duration and log results
       const endTime = Date.now();
       const testDuration = endTime - startTime;
       const durationSeconds = (testDuration / 1000).toFixed(1);
+      
+      // Try to capture final screenshot with a more resilient approach
+      try {
+        console.log("Taking final screenshot with safer approach...");
+        // First try with a viewport-only screenshot (non-fullPage)
+        await ReportingAdapter.captureScreenshot(page, testInfo, `final-viewport-${hoteldata.name}`, false);
+        
+        // Then try a safer approach for Allure screenshots
+        try {
+          await AllureScreenshots.addScreenshot(`Final State - ${hoteldata.name}`, async () => {
+            // Use viewport screenshot instead of fullPage
+            return await page.screenshot({ fullPage: false });
+          });
+        } catch (error: any) {
+          console.warn(`Couldn't add Allure screenshot: ${error?.message || "Unknown error"}`);
+        }
+      } catch (error: any) {
+        console.warn(`Final screenshot failed but continuing: ${error?.message || "Unknown error"}`);
+        // Don't fail the test if the screenshot fails
+      }
+      
+      // Create test summary for report
+      const testSummary = {
+        name: `Hotel Booking - ${hoteldata.name}`,
+        status: testStatus.success ? 'PASSED' : 'FAILED',
+        failureReason: testStatus.failureReason,
+        duration: `${durationSeconds} seconds`,
+        startStep: testStatus.startStep,
+        endStep: testStatus.endStep,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Attach summary to report
+      await ReportingAdapter.attachJson(testInfo, "Test Summary", testSummary);
+      
+      // Add test status to Allure report
+      if (!testStatus.success) {
+        ReportingAdapter.log(testStatus.failureReason, 'error');
+      } else {
+        ReportingAdapter.log('Test completed successfully', 'info');
+      }
       
       console.log(`\nTest Results for ${hoteldata.name}:`);
       console.log(`Status: ${testStatus.success ? 'PASSED ✅' : 'FAILED ❌'}`);

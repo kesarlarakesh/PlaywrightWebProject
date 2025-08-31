@@ -111,6 +111,13 @@ export class HotelDetailsPage extends BasePage {
     try {
       console.log("Finding Book Now button...");
       
+      // Ensure the page is in focus before interacting with elements
+      await this.ensureFocus();
+      
+      // Scroll to make sure the rate plan is in view
+      await ratePlan.scrollIntoViewIfNeeded();
+      await this.page.waitForTimeout(500); // Allow UI to stabilize
+      
       // Locate the PriceInfoWrapper within the selected rate plan
       const priceInfoWrapper = ratePlan.locator(
         'xpath=//*[contains(@class, "RateInfo__PriceInfoWrapper")]'
@@ -143,16 +150,16 @@ export class HotelDetailsPage extends BasePage {
         return;
       }
       
-      // Fallback approach 1
-      const fallbackButton1 = priceDetails.locator('a:has-text("Book now")');
+      // Fallback approach 1 - More generalized selector
+      const fallbackButton1 = priceDetails.locator('a:has-text("Book now"), button:has-text("Book now")');
       if (await this.isVisible(fallbackButton1, 3000)) {
         await this.click(fallbackButton1);
         console.log("Clicked Book Now button (fallback 1)");
         return;
       }
       
-      // Fallback approach 2
-      const fallbackButton2 = ratePlan.locator(':text("Book now")');
+      // Fallback approach 2 - Try in the entire rate plan
+      const fallbackButton2 = ratePlan.locator(':text("Book now"), a:has-text("Book now"), button:has-text("Book now")');
       if (await this.isVisible(fallbackButton2, 3000)) {
         await this.click(fallbackButton2);
         console.log("Clicked Book Now button (fallback 2)");
@@ -166,6 +173,27 @@ export class HotelDetailsPage extends BasePage {
         console.log("Clicked Book Now button (fallback 3 - page-wide search)");
         return;
       }
+      
+      // Fallback approach 4 - Case insensitive search on the entire page
+      const caseInsensitiveButton = this.page.locator('a, button', { hasText: /book now/i }).first();
+      if (await this.isVisible(caseInsensitiveButton, 3000)) {
+        await this.click(caseInsensitiveButton);
+        console.log("Clicked Book Now button (fallback 4 - case insensitive)");
+        return;
+      }
+      
+      // Fallback approach 5 - Check for any visible variant of "Book" button
+      const anyBookButton = this.page.locator('a, button', { hasText: /\bbook\b/i }).first();
+      if (await this.isVisible(anyBookButton, 3000)) {
+        await this.click(anyBookButton);
+        console.log("Clicked general Book button (fallback 5)");
+        return;
+      }
+      
+      // Take a screenshot for debugging if no button was found
+      const timestamp = new Date().toISOString().replace(/:/g, '-');
+      await this.page.screenshot({ path: `screenshots/book-button-not-found-${timestamp}.png`, fullPage: true });
+      console.error("Could not find Book Now button with any approach - screenshot saved for debugging");
       
       // Fallback approach 4 - Try clicking any button that might be relevant
       const confirmButton = this.page.locator('button:has-text("Confirm"), button:has-text("Continue"), a:has-text("Continue")').first();

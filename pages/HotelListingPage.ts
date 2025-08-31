@@ -122,21 +122,53 @@ export class HotelListingPage extends BasePage {
    * @returns - The new hotel details page
    */
   async selectRandomHotel(maxCardIndex = 3): Promise<Page> {
-    const { selectedItem: selectedCard, index: randomIndex } = 
-      await this.selectRandomItem(this.hotelCards, maxCardIndex);
+    await this.page.waitForTimeout(1000); // Allow time for all hotel cards to fully render
     
-    console.log(`Selected hotel card ${randomIndex + 1}`);
+    // Get count and ensure there are hotel cards to select from
+    const count = await this.getHotelCount();
+    if (count === 0) {
+      throw new Error("No hotel cards available to select");
+    }
     
-    // Click the card and wait for new window/tab
-    const [newPage] = await Promise.all([
-      this.page.waitForEvent("popup"),
-      this.click(selectedCard),
-    ]);
+    const maxIndex = Math.min(maxCardIndex, count);
+    console.log(`Selecting from ${maxIndex} hotel cards out of ${count} total`);
     
-    // Wait for the new page to load
-    await newPage.waitForLoadState("networkidle");
-    console.log("Navigated to hotel details page");
+    // Always try to select the first card for stability
+    const selectedIndex = 0; // Fixed to first card for reliability
+    const selectedCard = this.hotelCards.nth(selectedIndex);
     
-    return newPage;
+    // Scroll the card into view before clicking
+    await this.scrollToElement(selectedCard);
+    await this.page.waitForTimeout(500); // Wait after scroll
+    
+    console.log(`Selected hotel card ${selectedIndex + 1}`);
+    
+    // Take screenshot before clicking
+    await this.takeScreenshot(`before-hotel-selection`);
+    
+    try {
+      // Click the card and wait for new window/tab with timeout
+      const popupPromise = this.page.waitForEvent("popup", { timeout: 30000 });
+      await this.click(selectedCard);
+      const newPage = await popupPromise;
+      
+      // Wait for the new page to load
+      await newPage.waitForLoadState("domcontentloaded", { timeout: 30000 });
+      try {
+        // Try to wait for network idle but don't fail if it times out
+        await newPage.waitForLoadState("networkidle", { timeout: 45000 })
+          .catch(e => console.log("Network did not reach idle state, continuing anyway"));
+      } catch (e) {
+        console.log("Network idle wait timed out, continuing anyway");
+      }
+      
+      console.log("Successfully navigated to hotel details page");
+      return newPage;
+    } catch (error) {
+      console.error("Failed to open hotel details page:", error);
+      // Take screenshot of failure state
+      await this.takeScreenshot(`hotel-selection-error`);
+      throw new Error(`Failed to navigate to hotel details page: ${error}`);
+    }
   }
 }

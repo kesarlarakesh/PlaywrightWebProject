@@ -5,3 +5,11 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Allure report output (generated reports)
+# We keep configurations but not the generated reports
+/allure-report/
+/allure-results/
+
+# Keep test history
+!/allure-results/history/

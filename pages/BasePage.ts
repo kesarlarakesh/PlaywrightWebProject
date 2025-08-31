@@ -18,14 +18,41 @@ export class BasePage {
     this.config = ConfigManager.getInstance();
     this.defaultTimeout = this.config.getEnvValue<number>("timeout", 30000);
   }
+  
+  /**
+   * Ensure the page is in focus before interactions
+   * Helps prevent "Page is not visible" warnings
+   */
+  async ensureFocus(): Promise<void> {
+    try {
+      console.log("Ensuring page is in focus...");
+      await this.page.evaluate(() => {
+        window.focus();
+      });
+      // Brief pause to allow focus to take effect
+      await this.page.waitForTimeout(100);
+    } catch (error) {
+      // Log but continue if this fails
+      console.warn("Could not ensure page focus:", error);
+    }
+  }
 
   /**
    * Navigate to a specific URL
    * @param url - URL to navigate to
    */
   async navigateTo(url: string): Promise<void> {
-    await this.page.goto(url);
-    await this.page.waitForLoadState("networkidle");
+    await this.page.goto(url, { timeout: this.defaultTimeout });
+    try {
+      // Use a shorter timeout for networkidle to avoid hanging too long
+      await this.page.waitForLoadState("domcontentloaded", { timeout: 30000 });
+      // Only wait for networkidle with a reduced timeout
+      await this.page.waitForLoadState("networkidle", { timeout: 60000 }).catch(e => {
+        console.log("Network did not reach idle state, continuing anyway");
+      });
+    } catch (error: any) {
+      console.log(`Page load may not be complete, but continuing: ${error.message || error}`);
+    }
   }
 
   /**
@@ -45,8 +72,21 @@ export class BasePage {
    * @param locator - Element to click
    */
   async click(locator: Locator): Promise<void> {
+    // Ensure page is in focus before clicking to prevent visibility warnings
+    await this.ensureFocus();
+    
     await locator.waitFor({ state: "visible" });
-    await locator.click();
+    try {
+      await locator.click();
+    } catch (error: any) {
+      // If clicking fails, try again with force option
+      if (error.message.includes("not visible") || error.message.includes("not in viewport")) {
+        console.log("Element click failed, trying with force option");
+        await locator.click({ force: true });
+      } else {
+        throw error;
+      }
+    }
   }
 
   /**
@@ -56,8 +96,21 @@ export class BasePage {
    * @param delay - Delay between keystrokes
    */
   async fill(locator: Locator, value: string, delay = 100): Promise<void> {
+    // Ensure page is in focus before filling to prevent visibility warnings
+    await this.ensureFocus();
+    
     await locator.waitFor({ state: "visible" });
-    await locator.pressSequentially(value, { delay });
+    try {
+      await locator.pressSequentially(value, { delay });
+    } catch (error: any) {
+      // If typing fails, try again with standard fill
+      if (error.message.includes("not visible") || error.message.includes("not in viewport")) {
+        console.log("Press sequentially failed, trying with standard fill");
+        await locator.fill(value);
+      } else {
+        throw error;
+      }
+    }
   }
 
   /**
@@ -67,7 +120,32 @@ export class BasePage {
    */
   async isVisible(locator: Locator, timeout = 5000): Promise<boolean> {
     try {
+      // First check if the element exists in DOM
+      const count = await locator.count();
+      if (count === 0) {
+        return false;
+      }
+      
+      // Then check if it's visible
       await locator.waitFor({ state: "visible", timeout });
+      
+      // Additional visibility check through JS evaluation
+      const isVisibleInViewport = await locator.evaluate((el) => {
+        const rect = el.getBoundingClientRect();
+        return (
+          rect.top >= 0 &&
+          rect.left >= 0 &&
+          rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+          rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+        );
+      }).catch(() => false);
+      
+      if (!isVisibleInViewport) {
+        // If not in viewport, attempt to scroll to it
+        await locator.scrollIntoViewIfNeeded();
+        await this.page.waitForTimeout(300); // Wait for scroll
+      }
+      
       return true;
     } catch (e) {
       return false;

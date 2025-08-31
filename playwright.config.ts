@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { ReporterManager } from './utils/reporter/ReporterManager';
 
 // Get environment from TEST_ENV environment variable
 const testEnv = process.env.TEST_ENV || 'prod';
@@ -40,8 +41,14 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
+  reporter: ReporterManager.getReporterConfig(),
+  /* Global setup for test run */
+  globalSetup: path.join(__dirname, './global-setup.ts'),
+  
+  /* Global teardown for test run - will generate Allure report automatically */
+  globalTeardown: path.join(__dirname, './global-teardown.ts'),
+  
+  /* Get headless mode from environment variable or default to true */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
     // baseURL: 'http://localhost:3000',
@@ -51,7 +58,20 @@ export default defineConfig({
     
     /* Maximum time each action like click() can take */
     actionTimeout: 60000, // 60 seconds timeout for actions
+    
+    /* Run tests in headless mode by default, but allow override via env var */
+    headless: process.env.HEADLESS !== 'false', 
+    
+    /* Set viewport size for consistent rendering */
+    viewport: { width: 1280, height: 720 },
+    
+    /* Add launch options to improve stability */
+    launchOptions: {
+      slowMo: 50, // Slow down Playwright operations by 50ms
+    }
   },
+
+
 
   /* Configure projects for major browsers */
   projects: [
