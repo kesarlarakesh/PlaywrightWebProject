@@ -1,0 +1,25 @@
+{
+  "name": "playwright-web-project",
+  "version": "1.0.0",
+  "description": "Playwright E2E testing framework with POM pattern",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:dev": "npx playwright test --env=dev",
+    "test:staging": "npx playwright test --env=staging",
+    "test:prod": "npx playwright test --env=prod",
+    "test:hotel": "npx playwright test tests/hotel_e2e_pom.spec.ts",
+    "test:hotel:dev": "npx playwright test tests/hotel_e2e_pom.spec.ts --env=dev",
+    "test:hotel:staging": "npx playwright test tests/hotel_e2e_pom.spec.ts --env=staging",
+    "test:hotel:headed": "npx playwright test tests/hotel_e2e_pom.spec.ts --headed",
+    "test:debug": "npx playwright test --debug"
+  },
+  "keywords": [
+    "playwright",
+    "testing",
+    "automation",
+    "e2e"
+  ],
+  "author": "",
+  "license": "ISC"
+}

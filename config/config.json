@@ -1,0 +1,24 @@
+{
+  "environments": {
+    "dev": {
+      "baseUrl": "https://www.devairasia.com/en/gb",
+     "timeout": 60000,
+      "retryCount": 3,
+      "headless": false
+    },
+    "staging": {
+      "baseUrl": "https://www.stgairasia.com/en/gb",
+      "timeout": 45000,
+      "retryCount": 2,
+      "headless": false
+    },
+    "prod": {
+      "baseUrl": "https://www.airasia.com/en/gb",
+      "timeout": 30000,
+      "retryCount": 1,
+      "headless": true
+    }
+  },
+  "defaultEnvironment": "prod",
+  "screenshotPath": "screenshots"
+}
