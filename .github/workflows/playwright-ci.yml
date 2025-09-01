@@ -131,8 +131,8 @@ jobs:
       - name: Deploy to GitHub Pages
         run: |
           cd ./gh-pages-branch
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "kesarlarakesh"
+          git config --global user.email "itsrakeshkesarla@gmail.com"
           git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/kesarlarakesh/PlaywrightWebProject.git
           git push -f origin gh-pages
       
