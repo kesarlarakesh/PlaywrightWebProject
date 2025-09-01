@@ -115,13 +115,26 @@ jobs:
           name: test-results
           path: ./
       
-      - name: Publish Allure Report to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./allure-report
-          publish_branch: gh-pages
-          keep_files: true
+      - name: Prepare GitHub Pages content
+        run: |
+          # Create a temporary directory for the gh-pages branch
+          mkdir -p ./gh-pages-branch
+          cp -R ./allure-report/* ./gh-pages-branch/
+          
+          # Initialize git in the gh-pages directory
+          cd ./gh-pages-branch
+          git init
+          git checkout -b gh-pages
+          git add .
+          git commit -m "Update Allure report"
+      
+      - name: Deploy to GitHub Pages
+        run: |
+          cd ./gh-pages-branch
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/kesarlarakesh/PlaywrightWebProject.git
+          git push -f origin gh-pages
       
       - name: Post test summary
         if: always()
