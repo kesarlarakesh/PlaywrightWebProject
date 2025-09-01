@@ -180,23 +180,20 @@ jobs:
       
       - name: Send Slack notification
         if: always()
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
-          text: |
-            :chart_with_upwards_trend: *Playwright Test Results*
-            *Repository:* ${{ github.repository }}
-            *Workflow:* ${{ github.workflow }}
-            *Run:* ${{ github.run_id }}
-            *Status:* ${{ job.status }}
-            
-            *Test Results Summary:*
-            • Total Tests: `${{ steps.summary.outputs.total || 'N/A' }}`
-            • ✅ Passed: `${{ steps.summary.outputs.passed || 'N/A' }}`
-            • ❌ Failed: `${{ steps.summary.outputs.failed || 'N/A' }}`
-            • ⚠️ Broken: `${{ steps.summary.outputs.broken || 'N/A' }}`
-            • ➖ Skipped: `${{ steps.summary.outputs.skipped || 'N/A' }}`
-            
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          MESSAGE="*Playwright Test Results*
+          *Repository:* ${{ github.repository }}
+          *Workflow:* ${{ github.workflow }}
+          *Run:* ${{ github.run_id }}
+          *Status:* ${{ job.status }}
+          
+          *Test Results Summary:*
+          • Total Tests: \`${{ steps.summary.outputs.total || 'N/A' }}\`
+          • ✅ Passed: \`${{ steps.summary.outputs.passed || 'N/A' }}\`
+          • ❌ Failed: \`${{ steps.summary.outputs.failed || 'N/A' }}\`
+          • ⚠️ Broken: \`${{ steps.summary.outputs.broken || 'N/A' }}\`
+          • ➖ Skipped: \`${{ steps.summary.outputs.skipped || 'N/A' }}\`"
+          
+          curl --location 'https://hooks.slack.com/services/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' \
+          --header 'Content-type: application/json' \
+          --data "{\"text\":\"$MESSAGE\"}"
