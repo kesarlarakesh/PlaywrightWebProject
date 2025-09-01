@@ -58,7 +58,9 @@ jobs:
         run: npm install eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin --no-save
       
       - name: Run ESLint
-        run: npx eslint . --ext .ts
+        run: |
+          echo "Using ESLint configuration at .eslintrc.js"
+          npx eslint . --ext .ts --config .eslintrc.js
         continue-on-error: true
       
       - name: Run TypeScript compiler check
@@ -103,10 +105,68 @@ jobs:
             test-results/
           retention-days: 30
 
-  report:
-    name: Publish Test Results
+  process-results:
+    name: Process Test Results
     runs-on: ubuntu-latest
     needs: test
+    if: always()
+    outputs:
+      total: ${{ steps.summary.outputs.total }}
+      passed: ${{ steps.summary.outputs.passed }}
+      failed: ${{ steps.summary.outputs.failed }}
+      broken: ${{ steps.summary.outputs.broken }}
+      skipped: ${{ steps.summary.outputs.skipped }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download test results
+        uses: actions/download-artifact@v4
+        with:
+          name: test-results
+          path: ./
+      
+      - name: Extract test summary
+        id: summary
+        if: always()
+        run: |
+          echo "## Test Results Summary"
+          
+          if [ -f "allure-report/widgets/summary.json" ]; then
+            total=$(jq '.statistic.total' allure-report/widgets/summary.json)
+            passed=$(jq '.statistic.passed' allure-report/widgets/summary.json)
+            failed=$(jq '.statistic.failed' allure-report/widgets/summary.json)
+            broken=$(jq '.statistic.broken' allure-report/widgets/summary.json)
+            skipped=$(jq '.statistic.skipped' allure-report/widgets/summary.json)
+            
+            # Set outputs for other jobs
+            echo "total=$total" >> $GITHUB_OUTPUT
+            echo "passed=$passed" >> $GITHUB_OUTPUT
+            echo "failed=$failed" >> $GITHUB_OUTPUT
+            echo "broken=$broken" >> $GITHUB_OUTPUT
+            echo "skipped=$skipped" >> $GITHUB_OUTPUT
+            
+            echo "### Statistics" >> $GITHUB_STEP_SUMMARY
+            echo "- Total Tests: $total" >> $GITHUB_STEP_SUMMARY
+            echo "- Passed: $passed ✓" >> $GITHUB_STEP_SUMMARY
+            echo "- Failed: $failed ✗" >> $GITHUB_STEP_SUMMARY
+            echo "- Broken: $broken ⚠️" >> $GITHUB_STEP_SUMMARY
+            echo "- Skipped: $skipped ➖" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "total=0" >> $GITHUB_OUTPUT
+            echo "passed=0" >> $GITHUB_OUTPUT
+            echo "failed=0" >> $GITHUB_OUTPUT
+            echo "broken=0" >> $GITHUB_OUTPUT
+            echo "skipped=0" >> $GITHUB_OUTPUT
+            
+            echo "### Statistics" >> $GITHUB_STEP_SUMMARY
+            echo "- No test summary available" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+  publish-report:
+    name: Publish to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: process-results
     if: always()
     steps:
       - name: Checkout code
@@ -140,44 +200,13 @@ jobs:
           publish_dir: ./gh-pages-branch
           publish_branch: gh-pages
           force_orphan: true  # This ensures a clean gh-pages branch
-      
-      - name: Extract test summary
-        id: summary
-        if: always()
-        run: |
-          echo "## Test Results Summary"
-          
-          if [ -f "allure-report/widgets/summary.json" ]; then
-            total=$(jq '.statistic.total' allure-report/widgets/summary.json)
-            passed=$(jq '.statistic.passed' allure-report/widgets/summary.json)
-            failed=$(jq '.statistic.failed' allure-report/widgets/summary.json)
-            broken=$(jq '.statistic.broken' allure-report/widgets/summary.json)
-            skipped=$(jq '.statistic.skipped' allure-report/widgets/summary.json)
-            
-            # Set outputs for Slack notification
-            echo "total=$total" >> $GITHUB_OUTPUT
-            echo "passed=$passed" >> $GITHUB_OUTPUT
-            echo "failed=$failed" >> $GITHUB_OUTPUT
-            echo "broken=$broken" >> $GITHUB_OUTPUT
-            echo "skipped=$skipped" >> $GITHUB_OUTPUT
-            
-            echo "### Statistics" >> $GITHUB_STEP_SUMMARY
-            echo "- Total Tests: $total" >> $GITHUB_STEP_SUMMARY
-            echo "- Passed: $passed ✓" >> $GITHUB_STEP_SUMMARY
-            echo "- Failed: $failed ✗" >> $GITHUB_STEP_SUMMARY
-            echo "- Broken: $broken ⚠️" >> $GITHUB_STEP_SUMMARY
-            echo "- Skipped: $skipped ➖" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "total=0" >> $GITHUB_OUTPUT
-            echo "passed=0" >> $GITHUB_OUTPUT
-            echo "failed=0" >> $GITHUB_OUTPUT
-            echo "broken=0" >> $GITHUB_OUTPUT
-            echo "skipped=0" >> $GITHUB_OUTPUT
-            
-            echo "### Statistics" >> $GITHUB_STEP_SUMMARY
-            echo "- No test summary available" >> $GITHUB_STEP_SUMMARY
-          fi
-      
+
+  notify:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: process-results
+    if: always()
+    steps:
       - name: Send Slack notification
         if: always()
         run: |
@@ -188,11 +217,11 @@ jobs:
           *Status:* ${{ job.status }}
           
           *Test Results Summary:*
-          • Total Tests: \`${{ steps.summary.outputs.total || 'N/A' }}\`
-          • ✅ Passed: \`${{ steps.summary.outputs.passed || 'N/A' }}\`
-          • ❌ Failed: \`${{ steps.summary.outputs.failed || 'N/A' }}\`
-          • ⚠️ Broken: \`${{ steps.summary.outputs.broken || 'N/A' }}\`
-          • ➖ Skipped: \`${{ steps.summary.outputs.skipped || 'N/A' }}\`"
+          • Total Tests: \`${{ needs.process-results.outputs.total || 'N/A' }}\`
+          • ✅ Passed: \`${{ needs.process-results.outputs.passed || 'N/A' }}\`
+          • ❌ Failed: \`${{ needs.process-results.outputs.failed || 'N/A' }}\`
+          • ⚠️ Broken: \`${{ needs.process-results.outputs.broken || 'N/A' }}\`
+          • ➖ Skipped: \`${{ needs.process-results.outputs.skipped || 'N/A' }}\`"
           
           curl --location 'https://hooks.slack.com/services/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' \
           --header 'Content-type: application/json' \
