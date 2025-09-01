@@ -130,10 +130,15 @@ jobs:
           git add .
           git commit -m "Update Allure report"
       
-      - name: Set remote url
+      - name: Setup git remote
         run: |
           cd ./gh-pages-branch
-          git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/kesarlarakesh/PlaywrightWebProject.git
+          # Check if origin remote exists, if not add it, otherwise set its URL
+          if git remote | grep -q "origin"; then
+            git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/kesarlarakesh/PlaywrightWebProject.git
+          else
+            git remote add origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/kesarlarakesh/PlaywrightWebProject.git
+          fi
 
       - name: Push to gh-pages
         run: |
