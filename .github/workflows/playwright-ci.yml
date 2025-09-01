@@ -1,0 +1,145 @@
+name: Playwright Web Project CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  security:
+    name: Check for Vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+        
+      - name: Run dependency scanning with Snyk
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+  lint:
+    name: Linting & Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install ESLint
+        run: npm install eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin --no-save
+      
+      - name: Run ESLint
+        run: npx eslint . --ext .ts
+        continue-on-error: true
+      
+      - name: Run TypeScript compiler check
+        run: npx tsc --noEmit
+        continue-on-error: true
+
+  test:
+    name: Run Playwright Tests
+    runs-on: ubuntu-latest
+    needs: [security, lint]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      
+      - name: Run Playwright tests with Allure reporting
+        run: npm run test:allure
+      
+      - name: Generate Allure report
+        if: always()
+        run: npm run allure:generate
+      
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            allure-report/
+            playwright-report/
+            test-results/
+          retention-days: 30
+
+  report:
+    name: Publish Test Results
+    runs-on: ubuntu-latest
+    needs: test
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download test results
+        uses: actions/download-artifact@v3
+        with:
+          name: test-results
+          path: ./
+      
+      - name: Publish Allure Report to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./allure-report
+          publish_branch: gh-pages
+          keep_files: true
+      
+      - name: Post test summary
+        if: always()
+        run: |
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Test Report URL**: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f "allure-report/widgets/summary.json" ]; then
+            total=$(jq '.statistic.total' allure-report/widgets/summary.json)
+            passed=$(jq '.statistic.passed' allure-report/widgets/summary.json)
+            failed=$(jq '.statistic.failed' allure-report/widgets/summary.json)
+            broken=$(jq '.statistic.broken' allure-report/widgets/summary.json)
+            skipped=$(jq '.statistic.skipped' allure-report/widgets/summary.json)
+            
+            echo "### Statistics" >> $GITHUB_STEP_SUMMARY
+            echo "- Total Tests: $total" >> $GITHUB_STEP_SUMMARY
+            echo "- Passed: $passed ✓" >> $GITHUB_STEP_SUMMARY
+            echo "- Failed: $failed ✗" >> $GITHUB_STEP_SUMMARY
+            echo "- Broken: $broken ⚠️" >> $GITHUB_STEP_SUMMARY
+            echo "- Skipped: $skipped ➖" >> $GITHUB_STEP_SUMMARY
+          fi
