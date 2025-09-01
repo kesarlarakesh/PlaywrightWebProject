@@ -144,8 +144,7 @@ jobs:
       - name: Post test summary
         if: always()
         run: |
-          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Test Report URL** 
+          echo "## Test Results Summary"
           
           if [ -f "allure-report/widgets/summary.json" ]; then
             total=$(jq '.statistic.total' allure-report/widgets/summary.json)
