@@ -130,10 +130,14 @@ jobs:
           git add .
           git commit -m "Update Allure report"
       
-      - name: Deploy to GitHub Pages
+      - name: Set remote url
         run: |
           cd ./gh-pages-branch
           git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/kesarlarakesh/PlaywrightWebProject.git
+
+      - name: Push to gh-pages
+        run: |
+          cd ./gh-pages-branch
           git push -f origin gh-pages
       
       - name: Post test summary
