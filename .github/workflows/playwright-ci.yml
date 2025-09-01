@@ -130,20 +130,13 @@ jobs:
           git add .
           git commit -m "Update Allure report"
       
-      - name: Setup git remote
-        run: |
-          cd ./gh-pages-branch
-          # Check if origin remote exists, if not add it, otherwise set its URL
-          if git remote | grep -q "origin"; then
-            git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/kesarlarakesh/PlaywrightWebProject.git
-          else
-            git remote add origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/kesarlarakesh/PlaywrightWebProject.git
-          fi
-
-      - name: Push to gh-pages
-        run: |
-          cd ./gh-pages-branch
-          git push -f origin gh-pages
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./gh-pages-branch
+          publish_branch: gh-pages
+          force_orphan: true  # This ensures a clean gh-pages branch
       
       - name: Post test summary
         if: always()
