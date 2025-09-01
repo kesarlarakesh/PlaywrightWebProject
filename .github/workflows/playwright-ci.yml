@@ -141,7 +141,8 @@ jobs:
           publish_branch: gh-pages
           force_orphan: true  # This ensures a clean gh-pages branch
       
-      - name: Post test summary
+      - name: Extract test summary
+        id: summary
         if: always()
         run: |
           echo "## Test Results Summary"
@@ -153,10 +154,49 @@ jobs:
             broken=$(jq '.statistic.broken' allure-report/widgets/summary.json)
             skipped=$(jq '.statistic.skipped' allure-report/widgets/summary.json)
             
+            # Set outputs for Slack notification
+            echo "total=$total" >> $GITHUB_OUTPUT
+            echo "passed=$passed" >> $GITHUB_OUTPUT
+            echo "failed=$failed" >> $GITHUB_OUTPUT
+            echo "broken=$broken" >> $GITHUB_OUTPUT
+            echo "skipped=$skipped" >> $GITHUB_OUTPUT
+            
             echo "### Statistics" >> $GITHUB_STEP_SUMMARY
             echo "- Total Tests: $total" >> $GITHUB_STEP_SUMMARY
             echo "- Passed: $passed ✓" >> $GITHUB_STEP_SUMMARY
             echo "- Failed: $failed ✗" >> $GITHUB_STEP_SUMMARY
             echo "- Broken: $broken ⚠️" >> $GITHUB_STEP_SUMMARY
             echo "- Skipped: $skipped ➖" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "total=0" >> $GITHUB_OUTPUT
+            echo "passed=0" >> $GITHUB_OUTPUT
+            echo "failed=0" >> $GITHUB_OUTPUT
+            echo "broken=0" >> $GITHUB_OUTPUT
+            echo "skipped=0" >> $GITHUB_OUTPUT
+            
+            echo "### Statistics" >> $GITHUB_STEP_SUMMARY
+            echo "- No test summary available" >> $GITHUB_STEP_SUMMARY
           fi
+      
+      - name: Send Slack notification
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+          text: |
+            :chart_with_upwards_trend: *Playwright Test Results*
+            *Repository:* ${{ github.repository }}
+            *Workflow:* ${{ github.workflow }}
+            *Run:* ${{ github.run_id }}
+            *Status:* ${{ job.status }}
+            
+            *Test Results Summary:*
+            • Total Tests: `${{ steps.summary.outputs.total || 'N/A' }}`
+            • ✅ Passed: `${{ steps.summary.outputs.passed || 'N/A' }}`
+            • ❌ Failed: `${{ steps.summary.outputs.failed || 'N/A' }}`
+            • ⚠️ Broken: `${{ steps.summary.outputs.broken || 'N/A' }}`
+            • ➖ Skipped: `${{ steps.summary.outputs.skipped || 'N/A' }}`
+            
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
