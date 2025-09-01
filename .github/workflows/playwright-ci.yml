@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+  schedule:
+    # Runs every day at 5 PM UTC (adjust timezone as needed)
+    - cron: '0 17 * * *'
 
 jobs:
   security:
@@ -142,7 +145,7 @@ jobs:
         if: always()
         run: |
           echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Test Report URL**: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Test Report URL** 
           
           if [ -f "allure-report/widgets/summary.json" ]; then
             total=$(jq '.statistic.total' allure-report/widgets/summary.json)
