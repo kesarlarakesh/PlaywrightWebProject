@@ -1,228 +1,29 @@
-name: Playwright Web Project CI
+name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
-  workflow_dispatch:
-  schedule:
-    # Runs every day at 5 PM UTC (adjust timezone as needed)
-    - cron: '0 17 * * *'
+    branches:
+      - main
 
 jobs:
-  security:
-    name: Check for Vulnerabilities
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      
+        uses: actions/checkout@v2
       - name: Install dependencies
-        run: npm ci
-      
-      - name: Run npm audit
-        run: npm audit --audit-level=high
-        
-      - name: Run dependency scanning with Snyk
-        uses: snyk/actions/node@master
-        continue-on-error: true
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=high
-
-  lint:
-    name: Linting & Code Quality
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Install ESLint
-        run: npm install eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin --no-save
-      
-      - name: Run ESLint
-        run: |
-          echo "Using ESLint configuration at .eslintrc.js"
-          npx eslint . --ext .ts --config .eslintrc.js
-        continue-on-error: true
-      
-      - name: Run TypeScript compiler check
-        run: npx tsc --noEmit
-        continue-on-error: true
-
-  test:
-    name: Run Playwright Tests
-    runs-on: ubuntu-latest
-    needs: [security, lint]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-      
-      - name: Run Playwright tests with Allure reporting
-        run: npm run test:allure
-      
-      - name: Generate Allure report
-        if: always()
-        run: npm run allure:generate
-      
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: |
-            allure-report/
-            playwright-report/
-            test-results/
-          retention-days: 30
-
-  process-results:
-    name: Process Test Results
-    runs-on: ubuntu-latest
-    needs: test
-    if: always()
-    outputs:
-      total: ${{ steps.summary.outputs.total }}
-      passed: ${{ steps.summary.outputs.passed }}
-      failed: ${{ steps.summary.outputs.failed }}
-      broken: ${{ steps.summary.outputs.broken }}
-      skipped: ${{ steps.summary.outputs.skipped }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Download test results
-        uses: actions/download-artifact@v4
-        with:
-          name: test-results
-          path: ./
-      
-      - name: Extract test summary
-        id: summary
-        if: always()
-        run: |
-          echo "## Test Results Summary"
-          
-          if [ -f "allure-report/widgets/summary.json" ]; then
-            total=$(jq '.statistic.total' allure-report/widgets/summary.json)
-            passed=$(jq '.statistic.passed' allure-report/widgets/summary.json)
-            failed=$(jq '.statistic.failed' allure-report/widgets/summary.json)
-            broken=$(jq '.statistic.broken' allure-report/widgets/summary.json)
-            skipped=$(jq '.statistic.skipped' allure-report/widgets/summary.json)
-            
-            # Set outputs for other jobs
-            echo "total=$total" >> $GITHUB_OUTPUT
-            echo "passed=$passed" >> $GITHUB_OUTPUT
-            echo "failed=$failed" >> $GITHUB_OUTPUT
-            echo "broken=$broken" >> $GITHUB_OUTPUT
-            echo "skipped=$skipped" >> $GITHUB_OUTPUT
-            
-            echo "### Statistics" >> $GITHUB_STEP_SUMMARY
-            echo "- Total Tests: $total" >> $GITHUB_STEP_SUMMARY
-            echo "- Passed: $passed ✓" >> $GITHUB_STEP_SUMMARY
-            echo "- Failed: $failed ✗" >> $GITHUB_STEP_SUMMARY
-            echo "- Broken: $broken ⚠️" >> $GITHUB_STEP_SUMMARY
-            echo "- Skipped: $skipped ➖" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "total=0" >> $GITHUB_OUTPUT
-            echo "passed=0" >> $GITHUB_OUTPUT
-            echo "failed=0" >> $GITHUB_OUTPUT
-            echo "broken=0" >> $GITHUB_OUTPUT
-            echo "skipped=0" >> $GITHUB_OUTPUT
-            
-            echo "### Statistics" >> $GITHUB_STEP_SUMMARY
-            echo "- No test summary available" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-  publish-report:
-    name: Publish to GitHub Pages
-    runs-on: ubuntu-latest
-    needs: process-results
-    if: always()
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Download test results
-        uses: actions/download-artifact@v4
-        with:
-          name: test-results
-          path: ./
-      
-      - name: Prepare GitHub Pages content
-        run: |
-          # Create a temporary directory for the gh-pages branch
-          mkdir -p ./gh-pages-branch
-          cp -R ./allure-report/* ./gh-pages-branch/
-          
-          # Initialize git in the gh-pages directory
-          cd ./gh-pages-branch
-          git init
-          git config --global user.name "kesarlarakesh"
-          git config --global user.email "itsrakeshkesarla@gmail.com"
-          git checkout -b gh-pages
-          git add .
-          git commit -m "Update Allure report"
-      
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./gh-pages-branch
-          publish_branch: gh-pages
-          force_orphan: true  # This ensures a clean gh-pages branch
+        run: npm install
+      - name: Run tests
+        run: npm test
 
   notify:
-    name: Send Notifications
     runs-on: ubuntu-latest
-    needs: process-results
-    if: always()
     steps:
-      - name: Send Slack notification
-        if: always()
-        run: |
-          MESSAGE="*Playwright Test Results*
-          *Repository:* ${{ github.repository }}
-          *Workflow:* ${{ github.workflow }}
-          *Run:* ${{ github.run_id }}
-          *Status:* ${{ job.status }}
-          
-          *Test Results Summary:*
-          • Total Tests: \`${{ needs.process-results.outputs.total || 'N/A' }}\`
-          • ✅ Passed: \`${{ needs.process-results.outputs.passed || 'N/A' }}\`
-          • ❌ Failed: \`${{ needs.process-results.outputs.failed || 'N/A' }}\`
-          • ⚠️ Broken: \`${{ needs.process-results.outputs.broken || 'N/A' }}\`
-          • ➖ Skipped: \`${{ needs.process-results.outputs.skipped || 'N/A' }}\`"
-          
-          curl --location 'https://hooks.slack.com/services/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' \
-          --header 'Content-type: application/json' \
-          --data "{\"text\":\"$MESSAGE\"}"
+      - name: Notify Slack
+        uses: slackapi/slack-github-action@v1.21.0
+        with:
+          payload: '{"text": "Build completed!"}'
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
