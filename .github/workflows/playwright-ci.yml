@@ -86,38 +86,68 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - name: Download test results
         uses: actions/download-artifact@v4
         with:
           name: playwright-report
+          path: ./
+      - name: Extract Test Statistics
+        id: extract-stats
+        run: |
+          # Check if playwright-report/results.json exists
+          if [ -f "playwright-report/results.json" ]; then
+            # Extract test statistics using jq if available
+            if command -v jq &> /dev/null; then
+              TOTAL=$(jq '.stats.total' playwright-report/results.json)
+              PASSED=$(jq '.stats.expected' playwright-report/results.json)
+              FAILED=$(jq '.stats.unexpected' playwright-report/results.json)
+              FLAKY=$(jq '.stats.flaky' playwright-report/results.json)
+              SKIPPED=$(jq '.stats.skipped' playwright-report/results.json)
+            else
+              # Fallback to grep/sed if jq is not available
+              TOTAL=$(grep -o '"total":[0-9]*' playwright-report/results.json | sed 's/"total"://')
+              PASSED=$(grep -o '"expected":[0-9]*' playwright-report/results.json | sed 's/"expected"://')
+              FAILED=$(grep -o '"unexpected":[0-9]*' playwright-report/results.json | sed 's/"unexpected"://')
+              FLAKY=$(grep -o '"flaky":[0-9]*' playwright-report/results.json | sed 's/"flaky"://')
+              SKIPPED=$(grep -o '"skipped":[0-9]*' playwright-report/results.json | sed 's/"skipped"://')
+            fi
+          else
+            # Default values if results.json doesn't exist
+            TOTAL="N/A"
+            PASSED="N/A"
+            FAILED="N/A"
+            FLAKY="N/A"
+            SKIPPED="N/A"
+          fi
+          
+          # Set outputs for use in next step
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+          echo "passed=$PASSED" >> $GITHUB_OUTPUT
+          echo "failed=$FAILED" >> $GITHUB_OUTPUT
+          echo "flaky=$FLAKY" >> $GITHUB_OUTPUT
+          echo "skipped=$SKIPPED" >> $GITHUB_OUTPUT
+          
+          # Create a summary for direct use in the notification
+          echo "summary=Total: $TOTAL | Passed: $PASSED | Failed: $FAILED | Flaky: $FLAKY | Skipped: $SKIPPED" >> $GITHUB_OUTPUT
       - name: Notify Slack
         uses: rtCamp/action-slack-notify@v2
-        with:
-          payload: |
-            {
-              "text": "Playwright Test Results",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*Playwright Test Report*\nTest run completed. Check the detailed report in the artifacts."
-                  }
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "Build: ${{ github.run_id }}\nCommit: ${{ github.sha }}\nBranch: ${{ github.ref_name }}\nRun URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                  }
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "Daily scheduled tests at 5 PM UTC completed."
-                  }
-                }
-              ]
-            }
-          webhookUrl: ${{ secrets.WEBHOOK_URL }}
+        env:
+          SLACK_WEBHOOK: ${{ secrets.WEBHOOK_URL }}
+          SLACK_TITLE: "Playwright Test Results"
+          SLACK_MESSAGE: |
+            *Test Statistics*
+            Total: ${{ steps.extract-stats.outputs.total }}
+            Passed: ${{ steps.extract-stats.outputs.passed }} ✅
+            Failed: ${{ steps.extract-stats.outputs.failed }} ❌
+            Flaky: ${{ steps.extract-stats.outputs.flaky }} ⚠️
+            Skipped: ${{ steps.extract-stats.outputs.skipped }} ⏭️
+            
+            *Build Information*
+            Build: ${{ github.run_id }}
+            Commit: ${{ github.sha }}
+            Branch: ${{ github.ref_name }}
+            Run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
