@@ -48,6 +48,7 @@ jobs:
         run: npm audit
 
   test:
+    name: Run Playwright Tests
     runs-on: ubuntu-latest
     needs: [lint, vulnerability-scan]
     steps:
@@ -56,11 +57,12 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
+          cache: 'npm'
       - name: Install dependencies
         run: npm install
       - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps chromium
       - name: Run Playwright tests with Allure reporting
         run: npm run test:allure
       - name: Generate Allure report
