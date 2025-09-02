@@ -1,4 +1,4 @@
-name: Playwright CI
+﻿name: Playwright CI
 
 on:
   push:
