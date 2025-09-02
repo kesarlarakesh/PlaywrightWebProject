@@ -120,4 +120,4 @@ jobs:
                 }
               ]
             }
-          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhookUrl: ${{ secrets.SLACK_WEBHOOK_URL }}
