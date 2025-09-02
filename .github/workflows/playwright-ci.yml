@@ -91,7 +91,7 @@ jobs:
         with:
           name: playwright-report
       - name: Notify Slack
-        uses: slackapi/slack-github-action@v1.21.0
+        uses: rtCamp/action-slack-notify@v2
         with:
           payload: |
             {
