@@ -90,6 +90,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Check for secret
+        env:
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+        run: |
+          if [ -n "$WEBHOOK_URL" ]; then
+            echo "Secret is available."
+          else
+            echo "Warning: WEBHOOK_URL secret is not set."
+          fi
       - name: Download test results
         uses: actions/download-artifact@v4
         with:
