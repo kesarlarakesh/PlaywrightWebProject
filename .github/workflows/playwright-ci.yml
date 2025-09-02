@@ -159,7 +159,7 @@ jobs:
       - name: Notify Slack
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_WEBHOOK: ${{ secrets.WEBHOOK_URL }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_TITLE: "Playwright Test Results"
           SLACK_MESSAGE: |
             *Test Statistics*
