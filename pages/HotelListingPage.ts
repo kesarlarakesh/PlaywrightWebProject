@@ -1,5 +1,5 @@
-import { Page, Locator, expect } from "@playwright/test";
-import { BasePage } from "./BasePage";
+import { Page, Locator, expect } from '@playwright/test';
+import { BasePage } from './BasePage';
 
 /**
  * Represents the Hotel Listing Page
@@ -17,9 +17,9 @@ export class HotelListingPage extends BasePage {
     super(page);
     
     // Initialize locators
-    this.hotelsSection = page.locator("#hotels");
+    this.hotelsSection = page.locator('#hotels');
     this.hotelCards = this.hotelsSection.locator(
-      ".lazyload-wrapper .HotelCard__Container-sc-mub93g-0"
+      '.lazyload-wrapper .HotelCard__Container-sc-mub93g-0'
     );
   }
   
@@ -30,7 +30,7 @@ export class HotelListingPage extends BasePage {
   async waitForSearchResults(timeout = 60000): Promise<void> {
     await this.waitForUrl(/.*hotel.*/, timeout);
     await this.waitForElement(this.hotelsSection, timeout);
-    console.log("Hotel search results loaded");
+    console.log('Hotel search results loaded');
   }
   
   /**
@@ -50,7 +50,7 @@ export class HotelListingPage extends BasePage {
     console.log(`Found ${count} hotel listings`);
     
     if (count === 0) {
-      throw new Error("No hotel listings found");
+      throw new Error('No hotel listings found');
     }
     
     const cardsToVerify = Math.min(numberOfCards, count);
@@ -61,48 +61,48 @@ export class HotelListingPage extends BasePage {
       
       try {
         // Verify hotel card wrapper and structure
-        const cardWrapper = card.locator(".HotelCard__Wrapper-sc-mub93g-1");
+        const cardWrapper = card.locator('.HotelCard__Wrapper-sc-mub93g-1');
         await this.waitForElement(cardWrapper, 5000);
         
         // Verify hotel details section
         const detailsWrapper = cardWrapper.locator(
-          ".HotelCard__HotelDetailsWrapper-sc-mub93g-4"
+          '.HotelCard__HotelDetailsWrapper-sc-mub93g-4'
         );
         await this.waitForElement(detailsWrapper, 5000);
         
         // Verify hotel information
         await this.waitForElement(
-          detailsWrapper.locator(".HotelInfo__Title-sc-1ew4f3l-5"),
+          detailsWrapper.locator('.HotelInfo__Title-sc-1ew4f3l-5'),
           5000
         );
         await this.waitForElement(
-          detailsWrapper.locator(".HotelInfo__Location-sc-1ew4f3l-9"),
+          detailsWrapper.locator('.HotelInfo__Location-sc-1ew4f3l-9'),
           5000
         );
         
         // Verify review section
         const reviewWrapper = detailsWrapper.locator(
-          ".HotelInfo__ReviewWrapper-sc-1ew4f3l-13"
+          '.HotelInfo__ReviewWrapper-sc-1ew4f3l-13'
         );
         await this.waitForElement(reviewWrapper, 5000);
         await this.waitForElement(
-          reviewWrapper.locator(".Review__ScoreCard-sc-mu0oi8-2"),
+          reviewWrapper.locator('.Review__ScoreCard-sc-mu0oi8-2'),
           5000
         );
         
         // Verify amenities
         const amenities = detailsWrapper.locator(
-          ".HotelInfo__Amenities-sc-1ew4f3l-14"
+          '.HotelInfo__Amenities-sc-1ew4f3l-14'
         );
         await this.waitForElement(amenities, 5000);
         
         // Verify price details
         const priceWrapper = cardWrapper.locator(
-          ".HotelCard__PriceDetailsWrapper-sc-mub93g-12"
+          '.HotelCard__PriceDetailsWrapper-sc-mub93g-12'
         );
         await this.waitForElement(priceWrapper, 5000);
         await this.waitForElement(
-          priceWrapper.locator(".Price__PriceContainer-sc-1xkv6to-0"),
+          priceWrapper.locator('.Price__PriceContainer-sc-1xkv6to-0'),
           5000
         );
         
@@ -127,7 +127,7 @@ export class HotelListingPage extends BasePage {
     // Get count and ensure there are hotel cards to select from
     const count = await this.getHotelCount();
     if (count === 0) {
-      throw new Error("No hotel cards available to select");
+      throw new Error('No hotel cards available to select');
     }
     
     const maxIndex = Math.min(maxCardIndex, count);
@@ -148,24 +148,24 @@ export class HotelListingPage extends BasePage {
     
     try {
       // Click the card and wait for new window/tab with timeout
-      const popupPromise = this.page.waitForEvent("popup", { timeout: 30000 });
+      const popupPromise = this.page.waitForEvent('popup', { timeout: 30000 });
       await this.click(selectedCard);
       const newPage = await popupPromise;
       
       // Wait for the new page to load
-      await newPage.waitForLoadState("domcontentloaded", { timeout: 30000 });
+      await newPage.waitForLoadState('domcontentloaded', { timeout: 30000 });
       try {
         // Try to wait for network idle but don't fail if it times out
-        await newPage.waitForLoadState("networkidle", { timeout: 45000 })
-          .catch(e => console.log("Network did not reach idle state, continuing anyway"));
+        await newPage.waitForLoadState('networkidle', { timeout: 45000 })
+          .catch(e => console.log('Network did not reach idle state, continuing anyway'));
       } catch (e) {
-        console.log("Network idle wait timed out, continuing anyway");
+        console.log('Network idle wait timed out, continuing anyway');
       }
       
-      console.log("Successfully navigated to hotel details page");
+      console.log('Successfully navigated to hotel details page');
       return newPage;
     } catch (error) {
-      console.error("Failed to open hotel details page:", error);
+      console.error('Failed to open hotel details page:', error);
       // Take screenshot of failure state
       await this.takeScreenshot(`hotel-selection-error`);
       throw new Error(`Failed to navigate to hotel details page: ${error}`);

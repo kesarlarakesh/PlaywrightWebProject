@@ -2,6 +2,7 @@
   "name": "playwrightwebproject",
   "version": "1.0.0",
   "description": "",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "test": "npx playwright test",
@@ -15,7 +16,9 @@
     "allure:generate": "node allure-utils.js generate",
     "allure:open": "node allure-utils.js open",
     "allure:full": "node allure-utils.js full-process",
-    "test:with-report": "npx playwright test && npm run allure:full"
+    "test:with-report": "npx playwright test && npm run allure:full",
+    "lint": "npx eslint . --ext .ts",
+    "lint:fix": "npx eslint . --ext .ts --fix"
   },
   "keywords": [],
   "author": "",
@@ -23,9 +26,12 @@
   "devDependencies": {
     "@playwright/test": "^1.55.0",
     "@types/node": "^24.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.41.0",
+    "@typescript-eslint/parser": "^8.41.0",
     "allure-commandline": "^2.34.1",
     "allure-playwright": "^3.3.3",
     "cross-env": "^10.0.0",
+    "eslint": "^9.34.0",
     "typescript": "^5.9.2"
   }
 }

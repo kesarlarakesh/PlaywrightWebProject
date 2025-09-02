@@ -1,17 +1,17 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from '@playwright/test';
 
 // Import page objects
-import { HomePage } from "../pages/HomePage";
-import { HotelListingPage } from "../pages/HotelListingPage";
-import { HotelDetailsPage } from "../pages/HotelDetailsPage";
-import { GuestDetailsPage } from "../pages/GuestDetailsPage";
-import { PaymentPage } from "../pages/PaymentPage";
+import { HomePage } from '../pages/HomePage';
+import { HotelListingPage } from '../pages/HotelListingPage';
+import { HotelDetailsPage } from '../pages/HotelDetailsPage';
+import { GuestDetailsPage } from '../pages/GuestDetailsPage';
+import { PaymentPage } from '../pages/PaymentPage';
 
 // Import utilities
-import { ConfigManager } from "../utils/ConfigManager";
-import { TestDataManager } from "../testdata/testDataManager";
-import { ReportingAdapter } from "../utils/ReportingAdapter";
-import { AllureScreenshots } from "../utils/AllureScreenshots";
+import { ConfigManager } from '../utils/ConfigManager';
+import { TestDataManager } from '../testdata/testDataManager';
+import { ReportingAdapter } from '../utils/ReportingAdapter';
+import { AllureScreenshots } from '../utils/AllureScreenshots';
 
 // Initialize configuration and test data managers
 const config = ConfigManager.getInstance();
@@ -27,11 +27,11 @@ const commonData = testDataManager.getCommonHotelData();
 const skipPayment = commonData.testFlags?.skipPayment || false;
 const captureScreenshots = commonData.testFlags?.captureScreenshots !== false; // Default to true if not specified
 
-test.describe("Hotel Booking Flow", () => {
+test.describe('Hotel Booking Flow', () => {
   for (const hoteldata of hotelDestinations) {
     test(`Verify hotel funnel check - ${hoteldata.name}`, async ({ page }, testInfo) => {
       // Attach test data to report
-      await ReportingAdapter.attachJson(testInfo, "Test Data", hoteldata);
+      await ReportingAdapter.attachJson(testInfo, 'Test Data', hoteldata);
       
       // Add test metadata for Allure report
       ReportingAdapter.addTestInfo(testInfo, {
@@ -58,10 +58,10 @@ test.describe("Hotel Booking Flow", () => {
       };
       
       // Navigate to AirAsia website
-      await test.step("Navigate to homepage", async () => {
+      await test.step('Navigate to homepage', async () => {
         try {
-          testStatus.startStep = "Navigate to homepage";
-          console.log("Navigating to AirAsia homepage...");
+          testStatus.startStep = 'Navigate to homepage';
+          console.log('Navigating to AirAsia homepage...');
           await homePage.ensureFocus();
           await homePage.navigateToHomepage();
           
@@ -83,9 +83,9 @@ test.describe("Hotel Booking Flow", () => {
       });
 
       // Handle initial popups
-      await test.step("Handle popups", async () => {
+      await test.step('Handle popups', async () => {
         try {
-          console.log("Handling initial popups...");
+          console.log('Handling initial popups...');
           await homePage.handlePopups();
         } catch (error: any) {
           // Non-critical step, log but continue
@@ -94,16 +94,16 @@ test.describe("Hotel Booking Flow", () => {
       });
 
       // Navigate to Hotels section
-      await test.step("Navigate to Hotels tab", async () => {
-        console.log("Switching to Hotels tab...");
+      await test.step('Navigate to Hotels tab', async () => {
+        console.log('Switching to Hotels tab...');
         await homePage.switchToHotelsTab();
         await homePage.takeScreenshot(`hotels-tab-${hoteldata.name}`);
       });
 
       // Set destination
-      await test.step("Set destination", async () => {
+      await test.step('Set destination', async () => {
         try {
-          testStatus.startStep = "Set destination";
+          testStatus.startStep = 'Set destination';
           console.log(`Setting destination to ${hoteldata.name}...`);
           await homePage.setDestination(hoteldata.name);
           
@@ -118,10 +118,10 @@ test.describe("Hotel Booking Flow", () => {
       });
 
       // Set dates
-      await test.step("Set dates", async () => {
+      await test.step('Set dates', async () => {
         try {
-          testStatus.startStep = "Set dates";
-          console.log("Setting travel dates...");
+          testStatus.startStep = 'Set dates';
+          console.log('Setting travel dates...');
           const { checkInDaysFromNow, stayDuration } = hoteldata.dates;
           await homePage.setDates(checkInDaysFromNow, stayDuration);
         } catch (error: any) {
@@ -132,9 +132,9 @@ test.describe("Hotel Booking Flow", () => {
       });
 
       // Perform search with retry logic
-      await test.step("Perform search", async () => {
-        testStatus.startStep = "Perform search";
-        console.log("Performing hotel search...");
+      await test.step('Perform search', async () => {
+        testStatus.startStep = 'Perform search';
+        console.log('Performing hotel search...');
         
         // Implement retry logic for search
         let attempts = 0;
@@ -165,10 +165,10 @@ test.describe("Hotel Booking Flow", () => {
       const hotelListingPage = new HotelListingPage(page);
       
       // Verify results
-      await test.step("Verify search results", async () => {
+      await test.step('Verify search results', async () => {
         try {
-          testStatus.startStep = "Verify search results";
-          console.log("Verifying search results...");
+          testStatus.startStep = 'Verify search results';
+          console.log('Verifying search results...');
           
           // Ensure page is in focus
           await hotelListingPage.ensureFocus();
@@ -214,10 +214,10 @@ test.describe("Hotel Booking Flow", () => {
       });
 
       // Select and book a room
-      await test.step("Select hotel and navigate to details", async () => {
+      await test.step('Select hotel and navigate to details', async () => {
         try {
-          testStatus.startStep = "Select hotel and navigate to details";
-          console.log("Selecting a random hotel...");
+          testStatus.startStep = 'Select hotel and navigate to details';
+          console.log('Selecting a random hotel...');
           
           // Select random hotel and get the new page
           const detailsPage = await hotelListingPage.selectRandomHotel();
@@ -241,9 +241,9 @@ test.describe("Hotel Booking Flow", () => {
         }
         
         // Select a random room
-        await test.step("Select room and rate plan", async () => {
+        await test.step('Select room and rate plan', async () => {
           try {
-            testStatus.startStep = "Select room and rate plan";
+            testStatus.startStep = 'Select room and rate plan';
             // Get available rooms first
             await hotelDetailsPage.waitForRooms(30000);
             
@@ -264,7 +264,7 @@ test.describe("Hotel Booking Flow", () => {
               await hotelDetailsPage.takeScreenshot(`before-continue-${hoteldata.name}`);
             }
             
-            console.log("Finding Book Now button...");
+            console.log('Finding Book Now button...');
             
             // Add retry logic for clicking Book Now button
             let attempts = 0;
@@ -272,7 +272,7 @@ test.describe("Hotel Booking Flow", () => {
             
             while (attempts < maxAttempts) {
               try {
-                console.log("Ensuring page is in focus before clicking...");
+                console.log('Ensuring page is in focus before clicking...');
                 await hotelDetailsPage.ensureFocus();
                 await hotelDetailsPage.clickBookNow(ratePlan);
                 break; // Success, exit the loop
@@ -304,7 +304,7 @@ test.describe("Hotel Booking Flow", () => {
       // Initialize guest details page
       await test.step('Fill guest details', async () => {
         try {
-          testStatus.startStep = "Fill guest details";
+          testStatus.startStep = 'Fill guest details';
           console.log('Filling guest details...');
           
           // Initialize guest details page
@@ -313,7 +313,7 @@ test.describe("Hotel Booking Flow", () => {
           // Verify page loaded
           const pageLoaded = await guestDetailsPage.verifyPageLoaded();
           expect(pageLoaded).toBe(true);
-          console.log("Guest details page loaded");
+          console.log('Guest details page loaded');
           
           if (captureScreenshots) {
             // Take screenshot of the guest details page
@@ -361,7 +361,7 @@ test.describe("Hotel Booking Flow", () => {
       // Initialize payment page
       await test.step('Verify payment page', async () => {
         try {
-          testStatus.startStep = "Verify payment page";
+          testStatus.startStep = 'Verify payment page';
           console.log('Verifying payment page...');
           
           // Initialize payment page
@@ -370,7 +370,7 @@ test.describe("Hotel Booking Flow", () => {
           // Verify payment page loaded
           const paymentPageLoaded = await paymentPage.verifyPageLoaded();
           expect(paymentPageLoaded).toBe(true);
-          console.log("Payment page loaded successfully");
+          console.log('Payment page loaded successfully');
           
           if (captureScreenshots) {
             // Take screenshot of payment page
@@ -390,7 +390,7 @@ test.describe("Hotel Booking Flow", () => {
       if (!skipPayment) {
         await test.step('Enter payment details', async () => {
           try {
-            testStatus.startStep = "Enter payment details";
+            testStatus.startStep = 'Enter payment details';
             console.log('Entering payment details...');
             
             // Fill payment details using data from test data file
@@ -424,7 +424,7 @@ test.describe("Hotel Booking Flow", () => {
       
       // Try to capture final screenshot with a more resilient approach
       try {
-        console.log("Taking final screenshot with safer approach...");
+        console.log('Taking final screenshot with safer approach...');
         // First try with a viewport-only screenshot (non-fullPage)
         await ReportingAdapter.captureScreenshot(page, testInfo, `final-viewport-${hoteldata.name}`, false);
         
@@ -435,10 +435,10 @@ test.describe("Hotel Booking Flow", () => {
             return await page.screenshot({ fullPage: false });
           });
         } catch (error: any) {
-          console.warn(`Couldn't add Allure screenshot: ${error?.message || "Unknown error"}`);
+          console.warn(`Couldn't add Allure screenshot: ${error?.message || 'Unknown error'}`);
         }
       } catch (error: any) {
-        console.warn(`Final screenshot failed but continuing: ${error?.message || "Unknown error"}`);
+        console.warn(`Final screenshot failed but continuing: ${error?.message || 'Unknown error'}`);
         // Don't fail the test if the screenshot fails
       }
       
@@ -454,7 +454,7 @@ test.describe("Hotel Booking Flow", () => {
       };
       
       // Attach summary to report
-      await ReportingAdapter.attachJson(testInfo, "Test Summary", testSummary);
+      await ReportingAdapter.attachJson(testInfo, 'Test Summary', testSummary);
       
       // Add test status to Allure report
       if (!testStatus.success) {

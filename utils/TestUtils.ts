@@ -1,7 +1,7 @@
-import { Page } from "@playwright/test";
-import * as fs from "fs";
-import * as path from "path";
-import { ConfigManager } from "./ConfigManager";
+import { Page } from '@playwright/test';
+import * as fs from 'fs';
+import * as path from 'path';
+import { ConfigManager } from './ConfigManager';
 
 /**
  * Utility class for common functions used across tests
@@ -15,7 +15,7 @@ export class TestUtils {
    */
   static loadTestData(filePath: string): any {
     try {
-      const data = fs.readFileSync(filePath, "utf-8");
+      const data = fs.readFileSync(filePath, 'utf-8');
       return JSON.parse(data);
     } catch (error) {
       console.error(`Error loading test data from ${filePath}:`, error);
@@ -29,8 +29,8 @@ export class TestUtils {
    * @returns - Formatted date string
    */
   static formatDate(date: Date): string {
-    const day = date.getDate().toString().padStart(2, "0");
-    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
   }
@@ -75,7 +75,7 @@ export class TestUtils {
     
     while (retryCount < maxRetries) {
       try {
-        await page.waitForSelector(selector, { state: "visible", timeout });
+        await page.waitForSelector(selector, { state: 'visible', timeout });
         return;
       } catch (error) {
         retryCount++;

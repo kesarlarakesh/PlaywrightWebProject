@@ -1,5 +1,5 @@
-import { Page, Locator, expect } from "@playwright/test";
-import { BasePage } from "./BasePage";
+import { Page, Locator, expect } from '@playwright/test';
+import { BasePage } from './BasePage';
 
 /**
  * Represents the Hotel Details Page
@@ -17,8 +17,8 @@ export class HotelDetailsPage extends BasePage {
     super(page);
     
     // Initialize locators
-    this.roomsSection = page.locator("div");
-    const lazyLoadWrapper = this.roomsSection.locator(".lazyload-wrapper");
+    this.roomsSection = page.locator('div');
+    const lazyLoadWrapper = this.roomsSection.locator('.lazyload-wrapper');
     this.roomCards = lazyLoadWrapper.locator(
       'xpath=//*[contains(@class, "NewRoomCard__Wrapper")]'
     );
@@ -32,7 +32,7 @@ export class HotelDetailsPage extends BasePage {
       window.scrollTo(0, document.body.scrollHeight / 2);
     });
     await this.page.waitForTimeout(1000); // Wait for scroll animation
-    console.log("Scrolled to middle of the page");
+    console.log('Scrolled to middle of the page');
   }
   
   /**
@@ -44,7 +44,7 @@ export class HotelDetailsPage extends BasePage {
     const roomCount = await this.roomCards.count();
     
     if (roomCount === 0) {
-      throw new Error("No rooms available for this hotel");
+      throw new Error('No rooms available for this hotel');
     }
     
     console.log(`Found ${roomCount} available rooms`);
@@ -81,7 +81,7 @@ export class HotelDetailsPage extends BasePage {
     
     const ratePlanCount = await ratePlans.count();
     if (ratePlanCount === 0) {
-      throw new Error("No rate plans available for the selected room");
+      throw new Error('No rate plans available for the selected room');
     }
     
     console.log(`Found ${ratePlanCount} rate plans for the selected room`);
@@ -109,7 +109,7 @@ export class HotelDetailsPage extends BasePage {
    */
   async clickBookNow(ratePlan: Locator): Promise<void> {
     try {
-      console.log("Finding Book Now button...");
+      console.log('Finding Book Now button...');
       
       // Ensure the page is in focus before interacting with elements
       await this.ensureFocus();
@@ -137,7 +137,7 @@ export class HotelDetailsPage extends BasePage {
       await this.waitForElement(priceDetails, 5000);
       
       // Take a screenshot before clicking the button
-      await this.takeScreenshot("before-book-button");
+      await this.takeScreenshot('before-book-button');
       
       // Try different approaches to find the Book Now button
       const bookNowButton = priceDetails.locator(
@@ -146,7 +146,7 @@ export class HotelDetailsPage extends BasePage {
       
       if (await this.isVisible(bookNowButton, 5000)) {
         await this.click(bookNowButton);
-        console.log("Clicked Book Now button");
+        console.log('Clicked Book Now button');
         return;
       }
       
@@ -154,7 +154,7 @@ export class HotelDetailsPage extends BasePage {
       const fallbackButton1 = priceDetails.locator('a:has-text("Book now"), button:has-text("Book now")');
       if (await this.isVisible(fallbackButton1, 3000)) {
         await this.click(fallbackButton1);
-        console.log("Clicked Book Now button (fallback 1)");
+        console.log('Clicked Book Now button (fallback 1)');
         return;
       }
       
@@ -162,7 +162,7 @@ export class HotelDetailsPage extends BasePage {
       const fallbackButton2 = ratePlan.locator(':text("Book now"), a:has-text("Book now"), button:has-text("Book now")');
       if (await this.isVisible(fallbackButton2, 3000)) {
         await this.click(fallbackButton2);
-        console.log("Clicked Book Now button (fallback 2)");
+        console.log('Clicked Book Now button (fallback 2)');
         return;
       }
       
@@ -170,7 +170,7 @@ export class HotelDetailsPage extends BasePage {
       const fullPageBookButton = this.page.getByRole('link', { name: /book now/i });
       if (await this.isVisible(fullPageBookButton, 3000)) {
         await this.click(fullPageBookButton);
-        console.log("Clicked Book Now button (fallback 3 - page-wide search)");
+        console.log('Clicked Book Now button (fallback 3 - page-wide search)');
         return;
       }
       
@@ -178,7 +178,7 @@ export class HotelDetailsPage extends BasePage {
       const caseInsensitiveButton = this.page.locator('a, button', { hasText: /book now/i }).first();
       if (await this.isVisible(caseInsensitiveButton, 3000)) {
         await this.click(caseInsensitiveButton);
-        console.log("Clicked Book Now button (fallback 4 - case insensitive)");
+        console.log('Clicked Book Now button (fallback 4 - case insensitive)');
         return;
       }
       
@@ -186,30 +186,30 @@ export class HotelDetailsPage extends BasePage {
       const anyBookButton = this.page.locator('a, button', { hasText: /\bbook\b/i }).first();
       if (await this.isVisible(anyBookButton, 3000)) {
         await this.click(anyBookButton);
-        console.log("Clicked general Book button (fallback 5)");
+        console.log('Clicked general Book button (fallback 5)');
         return;
       }
       
       // Take a screenshot for debugging if no button was found
       const timestamp = new Date().toISOString().replace(/:/g, '-');
       await this.page.screenshot({ path: `screenshots/book-button-not-found-${timestamp}.png`, fullPage: true });
-      console.error("Could not find Book Now button with any approach - screenshot saved for debugging");
+      console.error('Could not find Book Now button with any approach - screenshot saved for debugging');
       
       // Fallback approach 4 - Try clicking any button that might be relevant
       const confirmButton = this.page.locator('button:has-text("Confirm"), button:has-text("Continue"), a:has-text("Continue")').first();
       if (await this.isVisible(confirmButton, 3000)) {
         await this.click(confirmButton);
-        console.log("Clicked Confirm/Continue button (fallback 4)");
+        console.log('Clicked Confirm/Continue button (fallback 4)');
         return;
       }
       
       // Take a screenshot before failing
-      await this.takeScreenshot("book-button-not-found");
-      throw new Error("Could not find Book Now button with any approach");
+      await this.takeScreenshot('book-button-not-found');
+      throw new Error('Could not find Book Now button with any approach');
       
     } catch (error) {
-      console.error("Error clicking Book Now button:", error);
-      await this.takeScreenshot("book-button-error");
+      console.error('Error clicking Book Now button:', error);
+      await this.takeScreenshot('book-button-error');
       throw error;
     }
   }
@@ -221,11 +221,11 @@ export class HotelDetailsPage extends BasePage {
    */
   async waitForGuestDetailsPage(timeout = 30000): Promise<boolean> {
     try {
-      await this.waitForPageLoad("networkidle", timeout);
-      console.log("Navigated to guest details page");
+      await this.waitForPageLoad('networkidle', timeout);
+      console.log('Navigated to guest details page');
       return true;
     } catch (error) {
-      console.error("Failed to navigate to guest details page:", error);
+      console.error('Failed to navigate to guest details page:', error);
       return false;
     }
   }

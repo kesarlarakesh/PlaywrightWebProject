@@ -1,5 +1,5 @@
-import { Page, Locator, expect } from "@playwright/test";
-import { BasePage } from "./BasePage";
+import { Page, Locator, expect } from '@playwright/test';
+import { BasePage } from './BasePage';
 
 /**
  * Represents the Guest Details Page
@@ -44,26 +44,26 @@ export class GuestDetailsPage extends BasePage {
    */
   async verifyPageLoaded(timeout = 30000): Promise<boolean> {
     try {
-      await this.waitForPageLoad("networkidle", timeout);
-      console.log("Guest details page loaded");
+      await this.waitForPageLoad('networkidle', timeout);
+      console.log('Guest details page loaded');
       
       // Try multiple selectors to verify we're on the correct page
       try {
         await this.waitForElement(this.guestDetailTitle, 10000);
-        console.log("Found guest-detail-title");
+        console.log('Found guest-detail-title');
         return true;
       } catch (e) {
         try {
           await this.waitForElement(this.checkingInText, 10000);
-          console.log("Found 'Who's checking-in?' text");
+          console.log('Found \'Who\'s checking-in?\' text');
           return true;
         } catch (e) {
-          console.error("Could not verify guest details page loaded");
+          console.error('Could not verify guest details page loaded');
           return false;
         }
       }
     } catch (error) {
-      console.error("Error verifying guest details page loaded:", error);
+      console.error('Error verifying guest details page loaded:', error);
       return false;
     }
   }
@@ -74,7 +74,7 @@ export class GuestDetailsPage extends BasePage {
    * @param familyName - Guest's last name
    */
   async fillGuestInformation(givenName = 'Test', familyName = 'User'): Promise<void> {
-    console.log("Filling guest (who's checking-in) information");
+    console.log('Filling guest (who\'s checking-in) information');
     
     try {
       // Fill Given Name with verification
@@ -89,16 +89,16 @@ export class GuestDetailsPage extends BasePage {
       if (nameValue !== givenName) {
         console.warn(`Name verification failed. Expected '${givenName}' but got '${nameValue}'`);
         await this.givenNameInput.fill(givenName);
-        console.log("Attempted name entry again using fill() method");
+        console.log('Attempted name entry again using fill() method');
       }
       
       // Fill Family Name/Surname
       await this.waitForElement(this.familyNameInput, 5000);
       await this.fill(this.familyNameInput, familyName);
       
-      console.log("Filled guest information successfully");
+      console.log('Filled guest information successfully');
     } catch (error: any) {
-      console.error("Error filling guest information:", error);
+      console.error('Error filling guest information:', error);
       throw new Error(`Failed to fill guest information: ${error.message}`);
     }
   }
@@ -116,7 +116,7 @@ export class GuestDetailsPage extends BasePage {
     email = 'test@example.com',
     mobile = '5551234567'
   ): Promise<void> {
-    console.log("Filling booker information");
+    console.log('Filling booker information');
     
     try {
       // Find booker section
@@ -134,9 +134,9 @@ export class GuestDetailsPage extends BasePage {
       // Fill Mobile Number
       await this.fill(this.mobileInput, mobile);
       
-      console.log("Filled booker information successfully");
+      console.log('Filled booker information successfully');
     } catch (error: any) {
-      console.error("Error filling booker information:", error);
+      console.error('Error filling booker information:', error);
       throw new Error(`Failed to fill booker information: ${error.message}`);
     }
   }
@@ -152,15 +152,15 @@ export class GuestDetailsPage extends BasePage {
     await this.page.waitForTimeout(1000);
     
     // Take screenshot before clicking continue
-    await this.takeScreenshot("before-continue");
+    await this.takeScreenshot('before-continue');
     
     // Find and click the continue button
     await this.waitForElement(this.continueButton, 10000);
     await this.click(this.continueButton);
-    console.log("Clicked continue to payment button");
+    console.log('Clicked continue to payment button');
     
     // Wait for navigation to payment page
-    await this.waitForPageLoad("networkidle", 30000);
-    console.log("Navigated to payment page");
+    await this.waitForPageLoad('networkidle', 30000);
+    console.log('Navigated to payment page');
   }
 }

@@ -1,6 +1,6 @@
-import { Page, TestInfo } from "@playwright/test";
-import * as path from "path";
-import * as fs from "fs";
+import { Page, TestInfo } from '@playwright/test';
+import * as path from 'path';
+import * as fs from 'fs';
 
 /**
  * Enhanced utility class for reporting functionalities
@@ -29,7 +29,7 @@ export class ReportingUtils {
     // Attach to test report
     await testInfo.attach(screenshotName, {
       path: screenshotPath,
-      contentType: "image/png"
+      contentType: 'image/png'
     });
     
     return screenshotPath;
@@ -76,7 +76,7 @@ export class ReportingUtils {
     if (fs.existsSync(screenshotPath)) {
       await testInfo.attach(screenshotName, {
         path: screenshotPath,
-        contentType: "image/png"
+        contentType: 'image/png'
       }).catch(attachError => {
         console.warn(`Failed to attach screenshot: ${attachError instanceof Error ? attachError.message : 'Unknown error'}`);
       });
@@ -94,7 +94,7 @@ export class ReportingUtils {
   static async attachText(testInfo: TestInfo, name: string, content: string): Promise<void> {
     await testInfo.attach(name, {
       body: content,
-      contentType: "text/plain"
+      contentType: 'text/plain'
     });
   }
   
@@ -107,7 +107,7 @@ export class ReportingUtils {
   static async attachJson(testInfo: TestInfo, name: string, content: any): Promise<void> {
     await testInfo.attach(name, {
       body: JSON.stringify(content, null, 2),
-      contentType: "application/json"
+      contentType: 'application/json'
     });
   }
   
@@ -120,7 +120,7 @@ export class ReportingUtils {
   static async attachHtml(testInfo: TestInfo, name: string, content: string): Promise<void> {
     await testInfo.attach(name, {
       body: content,
-      contentType: "text/html"
+      contentType: 'text/html'
     });
   }
 }

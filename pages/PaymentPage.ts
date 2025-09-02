@@ -1,5 +1,5 @@
-import { Page, Locator, expect, FrameLocator } from "@playwright/test";
-import { BasePage } from "./BasePage";
+import { Page, Locator, expect, FrameLocator } from '@playwright/test';
+import { BasePage } from './BasePage';
 
 /**
  * Represents the Payment Page
@@ -29,12 +29,12 @@ export class PaymentPage extends BasePage {
   async verifyPageLoaded(timeout = 30000): Promise<boolean> {
     try {
       await this.waitForElement(this.paymentSection, timeout);
-      await this.takeScreenshot("payment-page");
-      console.log("Payment page loaded successfully");
+      await this.takeScreenshot('payment-page');
+      console.log('Payment page loaded successfully');
       return true;
     } catch (error) {
-      console.error("Error verifying payment page:", error);
-      await this.takeScreenshot("payment-page-error");
+      console.error('Error verifying payment page:', error);
+      await this.takeScreenshot('payment-page-error');
       return false;
     }
   }
@@ -46,12 +46,12 @@ export class PaymentPage extends BasePage {
     try {
       if (await this.isVisible(this.creditCardOption, 5000)) {
         await this.click(this.creditCardOption);
-        console.log("Selected credit card payment method");
+        console.log('Selected credit card payment method');
       } else {
-        console.log("Credit card selection not required or already selected");
+        console.log('Credit card selection not required or already selected');
       }
     } catch (e) {
-      console.log("Credit card selection not required");
+      console.log('Credit card selection not required');
     }
   }
   
@@ -381,12 +381,12 @@ export class PaymentPage extends BasePage {
       await this.checkRequiredCheckboxes();
       
       // Take screenshot of filled payment form
-      await this.takeScreenshot("payment-form");
+      await this.takeScreenshot('payment-form');
       console.log('Payment form filled successfully');
     } catch (error) {
-      console.error("Error entering payment details:", error);
-      await this.takeScreenshot("payment-details-error");
-      console.log("Continuing test execution despite payment entry issues");
+      console.error('Error entering payment details:', error);
+      await this.takeScreenshot('payment-details-error');
+      console.log('Continuing test execution despite payment entry issues');
     }
   }
 }

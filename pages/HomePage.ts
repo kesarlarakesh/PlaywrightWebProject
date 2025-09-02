@@ -1,5 +1,5 @@
-import { Page, Locator } from "@playwright/test";
-import { BasePage } from "./BasePage";
+import { Page, Locator } from '@playwright/test';
+import { BasePage } from './BasePage';
 
 /**
  * Represents the AirAsia Homepage with hotel-related actions
@@ -32,13 +32,13 @@ export class HomePage extends BasePage {
     super(page);
     
     // Initialize locators with more reliable selectors where possible
-    this.hotelsTab = page.getByRole("tab", { name: /hotels/i });
-    this.destinationInput = page.locator(".Dropdown__StyledInput-sc-16g04av-10");
-    this.destinationDropdown = page.locator(".Dropdown__OptionsContainer-sc-16g04av-11");
+    this.hotelsTab = page.getByRole('tab', { name: /hotels/i });
+    this.destinationInput = page.locator('.Dropdown__StyledInput-sc-16g04av-10');
+    this.destinationDropdown = page.locator('.Dropdown__OptionsContainer-sc-16g04av-11');
     this.checkInDateInput = page.locator('#departclick-handle input[placeholder="dd/mm/yyyy"]');
     this.checkOutDateInput = page.locator('#returnclick-handle input[placeholder="dd/mm/yyyy"]');
-    this.dateConfirmButton = page.locator("#closebutton");
-    this.searchButton = page.locator("#hsw-search-button-container a");
+    this.dateConfirmButton = page.locator('#closebutton');
+    this.searchButton = page.locator('#hsw-search-button-container a');
     this.appNotificationCloseButton = page.locator('[aria-label="Close"]').first();
   }
 
@@ -60,7 +60,7 @@ export class HomePage extends BasePage {
       // Handle app notification if present (with timeout)
       if (await this.isVisible(this.appNotificationCloseButton, 5000)) {
         await this.click(this.appNotificationCloseButton);
-        console.log("Closed app notification popup");
+        console.log('Closed app notification popup');
       }
       
       // Handle login popup by clicking outside (a common workaround)
@@ -68,7 +68,7 @@ export class HomePage extends BasePage {
       
       // Small wait to allow popups to close
       await this.page.waitForTimeout(1000);
-      console.log("Clicked outside to close potential login dialog");
+      console.log('Clicked outside to close potential login dialog');
     } catch (e: any) {
       console.log(`No popups to handle or already closed: ${e.message}`);
     }
@@ -80,7 +80,7 @@ export class HomePage extends BasePage {
   async switchToHotelsTab(): Promise<void> {
     await this.waitForElement(this.hotelsTab);
     await this.click(this.hotelsTab);
-    console.log("Switched to Hotels tab");
+    console.log('Switched to Hotels tab');
   }
   
   /**
@@ -104,7 +104,7 @@ export class HomePage extends BasePage {
     
     // Create a more specific locator for the destination option
     const optionLocator = this.page
-      .locator(".Dropdown__OptionMainContent-sc-16g04av-22")
+      .locator('.Dropdown__OptionMainContent-sc-16g04av-22')
       .filter({
         has: this.page.getByText(destination, { exact: false }),
       });
@@ -122,8 +122,8 @@ export class HomePage extends BasePage {
    * @returns Formatted date string
    */
   private formatDate(date: Date): string {
-    const day = date.getDate().toString().padStart(2, "0");
-    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
   }
@@ -170,18 +170,18 @@ export class HomePage extends BasePage {
     try {
       // Click search button and wait for page load simultaneously
       await Promise.all([
-        this.page.waitForLoadState("domcontentloaded"),
+        this.page.waitForLoadState('domcontentloaded'),
         this.searchButton.click(),
       ]);
       
       // Wait for full page load with extended timeout
-      await this.waitForPageLoad("load", 30000);
-      console.log("Performed hotel search");
+      await this.waitForPageLoad('load', 30000);
+      console.log('Performed hotel search');
     } catch (error: any) {
       console.error(`Error during hotel search: ${error.message}`);
       
       // Take screenshot for debugging
-      await this.takeScreenshot("search-error");
+      await this.takeScreenshot('search-error');
       
       // Re-throw error to let calling code handle it
       throw new Error(`Hotel search failed: ${error.message}`);

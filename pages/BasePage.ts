@@ -1,7 +1,7 @@
-import { Page, Locator, expect } from "@playwright/test";
-import { ConfigManager } from "../utils/ConfigManager";
-import * as fs from "fs";
-import * as path from "path";
+import { Page, Locator, expect } from '@playwright/test';
+import { ConfigManager } from '../utils/ConfigManager';
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Base Page class that provides common functionality for all page objects
@@ -18,7 +18,7 @@ export class BasePage {
   constructor(page: Page) {
     this.page = page;
     this.config = ConfigManager.getInstance();
-    this.defaultTimeout = this.config.getEnvValue<number>("timeout", 30000);
+    this.defaultTimeout = this.config.getEnvValue<number>('timeout', 30000);
   }
   
   /**
@@ -27,7 +27,7 @@ export class BasePage {
    */
   async ensureFocus(): Promise<void> {
     try {
-      console.log("Ensuring page is in focus...");
+      console.log('Ensuring page is in focus...');
       await this.page.evaluate(() => {
         window.focus();
       });
@@ -35,7 +35,7 @@ export class BasePage {
       await this.page.waitForTimeout(100);
     } catch (error) {
       // Log but continue if this fails
-      console.warn("Could not ensure page focus:", error);
+      console.warn('Could not ensure page focus:', error);
     }
   }
 
@@ -47,10 +47,10 @@ export class BasePage {
     await this.page.goto(url, { timeout: this.defaultTimeout });
     try {
       // Use a shorter timeout for networkidle to avoid hanging too long
-      await this.page.waitForLoadState("domcontentloaded", { timeout: 30000 });
+      await this.page.waitForLoadState('domcontentloaded', { timeout: 30000 });
       // Only wait for networkidle with a reduced timeout
-      await this.page.waitForLoadState("networkidle", { timeout: 60000 }).catch(e => {
-        console.log("Network did not reach idle state, continuing anyway");
+      await this.page.waitForLoadState('networkidle', { timeout: 60000 }).catch(e => {
+        console.log('Network did not reach idle state, continuing anyway');
       });
     } catch (error: any) {
       console.log(`Page load may not be complete, but continuing: ${error.message || error}`);
@@ -63,7 +63,7 @@ export class BasePage {
    * @param timeout - Maximum time to wait in ms (defaults to config value)
    */
   async waitForPageLoad(
-    state: "load" | "domcontentloaded" | "networkidle" = "networkidle", 
+    state: 'load' | 'domcontentloaded' | 'networkidle' = 'networkidle', 
     timeout?: number
   ): Promise<void> {
     await this.page.waitForLoadState(state, { timeout: timeout || this.defaultTimeout });
@@ -77,13 +77,13 @@ export class BasePage {
     // Ensure page is in focus before clicking to prevent visibility warnings
     await this.ensureFocus();
     
-    await locator.waitFor({ state: "visible" });
+    await locator.waitFor({ state: 'visible' });
     try {
       await locator.click();
     } catch (error: any) {
       // If clicking fails, try again with force option
-      if (error.message.includes("not visible") || error.message.includes("not in viewport")) {
-        console.log("Element click failed, trying with force option");
+      if (error.message.includes('not visible') || error.message.includes('not in viewport')) {
+        console.log('Element click failed, trying with force option');
         await locator.click({ force: true });
       } else {
         throw error;
@@ -101,13 +101,13 @@ export class BasePage {
     // Ensure page is in focus before filling to prevent visibility warnings
     await this.ensureFocus();
     
-    await locator.waitFor({ state: "visible" });
+    await locator.waitFor({ state: 'visible' });
     try {
       await locator.pressSequentially(value, { delay });
     } catch (error: any) {
       // If typing fails, try again with standard fill
-      if (error.message.includes("not visible") || error.message.includes("not in viewport")) {
-        console.log("Press sequentially failed, trying with standard fill");
+      if (error.message.includes('not visible') || error.message.includes('not in viewport')) {
+        console.log('Press sequentially failed, trying with standard fill');
         await locator.fill(value);
       } else {
         throw error;
@@ -129,7 +129,7 @@ export class BasePage {
       }
       
       // Then check if it's visible
-      await locator.waitFor({ state: "visible", timeout });
+      await locator.waitFor({ state: 'visible', timeout });
       
       // Additional visibility check through JS evaluation
       const isVisibleInViewport = await locator.evaluate((el) => {
@@ -161,7 +161,7 @@ export class BasePage {
    */
   async waitForElement(locator: Locator, timeout?: number): Promise<void> {
     await locator.waitFor({ 
-      state: "visible", 
+      state: 'visible', 
       timeout: timeout || Math.floor(this.defaultTimeout / 3) 
     });
   }
@@ -171,8 +171,8 @@ export class BasePage {
    * @param locator - Element to get text from
    */
   async getText(locator: Locator): Promise<string> {
-    await locator.waitFor({ state: "visible" });
-    return await locator.textContent() || "";
+    await locator.waitFor({ state: 'visible' });
+    return await locator.textContent() || '';
   }
 
   /**
@@ -223,7 +223,7 @@ export class BasePage {
   async selectRandomItem(locators: Locator, maxIndex?: number): Promise<{ selectedItem: Locator; index: number }> {
     const count = await locators.count();
     if (count === 0) {
-      throw new Error("No items available to select");
+      throw new Error('No items available to select');
     }
     
     const max = maxIndex ? Math.min(maxIndex, count) : count;

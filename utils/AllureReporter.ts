@@ -65,7 +65,7 @@ export class AllureReporter {
         console.warn(`First screenshot attempt failed: ${error.message}`);
         // If fullPage fails, try without fullPage
         if (fullPage) {
-          console.log("Trying without fullPage option...");
+          console.log('Trying without fullPage option...');
           return await page.screenshot({ 
             path: screenshotPath, 
             fullPage: false,
