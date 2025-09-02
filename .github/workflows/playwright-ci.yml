@@ -77,6 +77,8 @@ jobs:
           path: |
             playwright-report/
             allure-report/
+            test-results/
+            allure-results/
           retention-days: 30
 
   notify:
@@ -90,15 +92,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Check for secret
-        env:
-          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
-        run: |
-          if [ -n "$WEBHOOK_URL" ]; then
-            echo "Secret is available."
-          else
-            echo "Warning: WEBHOOK_URL secret is not set."
-          fi
       - name: Download test results
         uses: actions/download-artifact@v4
         with:
@@ -107,31 +100,52 @@ jobs:
       - name: Extract Test Statistics
         id: extract-stats
         run: |
-          # Check if playwright-report/results.json exists
-          if [ -f "playwright-report/results.json" ]; then
+          # Check if test-results/json-report.json exists
+          if [ -f "test-results/json-report.json" ]; then
+            echo "Found test-results/json-report.json file"
             # Extract test statistics using jq if available
             if command -v jq &> /dev/null; then
-              TOTAL=$(jq '.stats.total' playwright-report/results.json)
-              PASSED=$(jq '.stats.expected' playwright-report/results.json)
-              FAILED=$(jq '.stats.unexpected' playwright-report/results.json)
-              FLAKY=$(jq '.stats.flaky' playwright-report/results.json)
-              SKIPPED=$(jq '.stats.skipped' playwright-report/results.json)
+              echo "Using jq to parse JSON"
+              # Playwright JSON report format is different from what we expected before
+              TOTAL=$(jq '.suites[0].specs | length' test-results/json-report.json)
+              PASSED=$(jq '[.suites[0].specs[].tests[] | select(.status == "passed")] | length' test-results/json-report.json)
+              FAILED=$(jq '[.suites[0].specs[].tests[] | select(.status == "failed")] | length' test-results/json-report.json)
+              FLAKY=$(jq '[.suites[0].specs[].tests[] | select(.status == "flaky")] | length' test-results/json-report.json)
+              SKIPPED=$(jq '[.suites[0].specs[].tests[] | select(.status == "skipped")] | length' test-results/json-report.json)
             else
-              # Fallback to grep/sed if jq is not available
-              TOTAL=$(grep -o '"total":[0-9]*' playwright-report/results.json | sed 's/"total"://')
-              PASSED=$(grep -o '"expected":[0-9]*' playwright-report/results.json | sed 's/"expected"://')
-              FAILED=$(grep -o '"unexpected":[0-9]*' playwright-report/results.json | sed 's/"unexpected"://')
-              FLAKY=$(grep -o '"flaky":[0-9]*' playwright-report/results.json | sed 's/"flaky"://')
-              SKIPPED=$(grep -o '"skipped":[0-9]*' playwright-report/results.json | sed 's/"skipped"://')
+              echo "jq not available, using grep/awk fallback"
+              # This is a rough approximation since parsing JSON with grep is not ideal
+              PASSED=$(grep -c '"status":"passed"' test-results/json-report.json || echo 0)
+              FAILED=$(grep -c '"status":"failed"' test-results/json-report.json || echo 0)
+              FLAKY=$(grep -c '"status":"flaky"' test-results/json-report.json || echo 0)
+              SKIPPED=$(grep -c '"status":"skipped"' test-results/json-report.json || echo 0)
+              TOTAL=$((PASSED + FAILED + FLAKY + SKIPPED))
             fi
           else
-            # Default values if results.json doesn't exist
-            TOTAL="N/A"
-            PASSED="N/A"
-            FAILED="N/A"
-            FLAKY="N/A"
-            SKIPPED="N/A"
+            # Try allure-results directory since that's where Allure data is stored
+            echo "JSON report not found in test-results directory, checking allure-results"
+            
+            if [ -d "allure-results" ]; then
+              echo "Found allure-results directory, trying to extract test counts"
+              # Count test cases in allure-results by status
+              TOTAL=$(find allure-results -name "*.json" | grep -v "container\|attachment" | wc -l)
+              PASSED=$(grep -l '"status":"passed"' allure-results/*.json 2>/dev/null | wc -l)
+              FAILED=$(grep -l '"status":"failed"' allure-results/*.json 2>/dev/null | wc -l)
+              SKIPPED=$(grep -l '"status":"skipped"' allure-results/*.json 2>/dev/null | wc -l)
+              FLAKY=0  # Allure doesn't have a direct flaky status
+            else
+              echo "No test result data found"
+              # Default values if no results exist
+              TOTAL="0"
+              PASSED="0"
+              FAILED="0"
+              FLAKY="0"
+              SKIPPED="0"
+            fi
           fi
+          
+          # Display what was found for debugging in the workflow
+          echo "Found test statistics: Total: $TOTAL, Passed: $PASSED, Failed: $FAILED, Flaky: $FLAKY, Skipped: $SKIPPED"
           
           # Set outputs for use in next step
           echo "total=$TOTAL" >> $GITHUB_OUTPUT
