@@ -1,23 +1,10 @@
 import { ReportingUtils } from './ReportingUtils';
-import { Page, TestInfo } from '@playwright/test';
+import { TestInfo } from '@playwright/test';
 
 /**
  * Adapter class that uses ReportingUtils to provide reporting capabilities
  */
 export class ReportingAdapter {
-  /**
-   * @deprecated Screenshot functionality has been removed
-   */
-  static async captureScreenshot(
-    page: Page, 
-    testInfo: TestInfo, 
-    name: string, 
-    fullPage = false
-  ): Promise<string> {
-    console.log(`Screenshot functionality removed. Requested: ${name}`);
-    return "";
-  }
-
   /**
    * Report a step with status
    * @param name - Step name

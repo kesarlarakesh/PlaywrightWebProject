@@ -1,4 +1,4 @@
-import { Page, TestInfo } from '@playwright/test';
+import { TestInfo } from '@playwright/test';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -6,22 +6,6 @@ import * as fs from 'fs';
  * Enhanced utility class for reporting functionalities
  */
 export class ReportingUtils {
-  /**
-   * @deprecated Screenshot functionality has been removed
-   */
-  static async captureScreenshot(page: Page, testInfo: TestInfo, name?: string): Promise<string> {
-    console.log(`Screenshot functionality removed. Requested: ${name || 'unnamed'}`);
-    return "";
-  }
-  
-  /**
-   * @deprecated Screenshot functionality has been removed
-   */
-  static async captureFullPageScreenshot(page: Page, testInfo: TestInfo, name?: string): Promise<string> {
-    console.log(`Full page screenshot functionality removed. Requested: ${name || 'unnamed'}`);
-    return "";
-  }
-  
   /**
    * Add a text attachment to the test report
    * @param testInfo - TestInfo object from playwright test

@@ -27,8 +27,7 @@ PlaywrightWebProject/
 ├── utils/                  # Utility functions
 │   ├── ConfigManager.ts    # Configuration management
 │   ├── ReportingAdapter.ts # Adapter for reporting systems
-│   ├── ReportingUtils.ts   # Basic reporting utilities
-│   └── TestUtils.ts        # Common test utilities
+│   └── ReportingUtils.ts   # Basic reporting utilities
 │
 ├── playwright.config.ts    # Playwright configuration
 └── package.json            # Project dependencies
