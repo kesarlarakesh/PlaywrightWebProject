@@ -1,5 +1,5 @@
 @echo off
-echo Starting Allure Report Server...
+echo Starting Playwright HTML report server...
 echo The report will open in your default browser.
 echo Press Ctrl+C in this window when done viewing the report.
-node view-report.js
+npx playwright show-report

@@ -151,9 +151,6 @@ export class GuestDetailsPage extends BasePage {
     });
     await this.page.waitForTimeout(1000);
     
-    // Take screenshot before clicking continue
-    await this.takeScreenshot('before-continue');
-    
     // Find and click the continue button
     await this.waitForElement(this.continueButton, 10000);
     await this.click(this.continueButton);

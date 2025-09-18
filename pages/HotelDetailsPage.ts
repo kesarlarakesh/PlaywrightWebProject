@@ -136,9 +136,6 @@ export class HotelDetailsPage extends BasePage {
       );
       await this.waitForElement(priceDetails, 5000);
       
-      // Take a screenshot before clicking the button
-      await this.takeScreenshot('before-book-button');
-      
       // Try different approaches to find the Book Now button
       const bookNowButton = priceDetails.locator(
         '.Button__ButtonContainer:has-text("Book now")'
@@ -190,10 +187,7 @@ export class HotelDetailsPage extends BasePage {
         return;
       }
       
-      // Take a screenshot for debugging if no button was found
-      const timestamp = new Date().toISOString().replace(/:/g, '-');
-      await this.page.screenshot({ path: `screenshots/book-button-not-found-${timestamp}.png`, fullPage: true });
-      console.error('Could not find Book Now button with any approach - screenshot saved for debugging');
+      console.error('Could not find Book Now button with any approach');
       
       // Fallback approach 4 - Try clicking any button that might be relevant
       const confirmButton = this.page.locator('button:has-text("Confirm"), button:has-text("Continue"), a:has-text("Continue")').first();
@@ -203,13 +197,10 @@ export class HotelDetailsPage extends BasePage {
         return;
       }
       
-      // Take a screenshot before failing
-      await this.takeScreenshot('book-button-not-found');
       throw new Error('Could not find Book Now button with any approach');
       
     } catch (error) {
       console.error('Error clicking Book Now button:', error);
-      await this.takeScreenshot('book-button-error');
       throw error;
     }
   }

@@ -63,12 +63,8 @@ jobs:
         run: npm install
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
-      - name: Run Playwright tests with Allure reporting
-        run: npm run test:allure
-      - name: Generate Allure report
-        run: |
-          npm run allure:import
-          npm run allure:generate
+      - name: Run Playwright tests
+        run: npm run test
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -76,9 +72,7 @@ jobs:
           name: playwright-report
           path: |
             playwright-report/
-            allure-report/
             test-results/
-            allure-results/
           retention-days: 30
 
   notify:
@@ -122,26 +116,13 @@ jobs:
               TOTAL=$((PASSED + FAILED + FLAKY + SKIPPED))
             fi
           else
-            # Try allure-results directory since that's where Allure data is stored
-            echo "JSON report not found in test-results directory, checking allure-results"
-            
-            if [ -d "allure-results" ]; then
-              echo "Found allure-results directory, trying to extract test counts"
-              # Count test cases in allure-results by status
-              TOTAL=$(find allure-results -name "*.json" | grep -v "container\|attachment" | wc -l)
-              PASSED=$(grep -l '"status":"passed"' allure-results/*.json 2>/dev/null | wc -l)
-              FAILED=$(grep -l '"status":"failed"' allure-results/*.json 2>/dev/null | wc -l)
-              SKIPPED=$(grep -l '"status":"skipped"' allure-results/*.json 2>/dev/null | wc -l)
-              FLAKY=0  # Allure doesn't have a direct flaky status
-            else
-              echo "No test result data found"
-              # Default values if no results exist
-              TOTAL="0"
-              PASSED="0"
-              FAILED="0"
-              FLAKY="0"
-              SKIPPED="0"
-            fi
+            echo "No test result data found"
+            # Default values if no results exist
+            TOTAL="0"
+            PASSED="0"
+            FAILED="0"
+            FLAKY="0"
+            SKIPPED="0"
           fi
           
           # Display what was found for debugging in the workflow

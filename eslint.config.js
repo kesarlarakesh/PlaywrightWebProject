@@ -7,8 +7,6 @@ export default [
     files: ['**/*.ts'],
     ignores: [
       'node_modules/**',
-      'allure-report/**',
-      'allure-results/**',
       'playwright-report/**',
       'test-results/**'
     ],

@@ -45,7 +45,7 @@ export default defineConfig({
   /* Global setup for test run */
   globalSetup: path.join(__dirname, './global-setup.ts'),
   
-  /* Global teardown for test run - will generate Allure report automatically */
+  /* Global teardown for test run */
   globalTeardown: path.join(__dirname, './global-teardown.ts'),
   
   /* Get headless mode from environment variable or default to true */

@@ -19,13 +19,6 @@ export class ReporterManager {
       
       // JSON output for programmatic consumption
       ['json', { outputFile: 'test-results/json-report.json' }],
-      
-      // Allure reporter for rich interactive reports
-      ['allure-playwright', {
-        detail: true, // Include detailed test steps
-        outputFolder: 'allure-results',
-        suiteTitle: false // Don't use suite titles to reduce clutter
-      }],
     ];
   }
 }

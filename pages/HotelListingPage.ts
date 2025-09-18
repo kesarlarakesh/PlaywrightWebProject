@@ -143,9 +143,6 @@ export class HotelListingPage extends BasePage {
     
     console.log(`Selected hotel card ${selectedIndex + 1}`);
     
-    // Take screenshot before clicking
-    await this.takeScreenshot(`before-hotel-selection`);
-    
     try {
       // Click the card and wait for new window/tab with timeout
       const popupPromise = this.page.waitForEvent('popup', { timeout: 30000 });
@@ -166,8 +163,6 @@ export class HotelListingPage extends BasePage {
       return newPage;
     } catch (error) {
       console.error('Failed to open hotel details page:', error);
-      // Take screenshot of failure state
-      await this.takeScreenshot(`hotel-selection-error`);
       throw new Error(`Failed to navigate to hotel details page: ${error}`);
     }
   }

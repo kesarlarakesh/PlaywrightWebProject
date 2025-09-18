@@ -9,44 +9,9 @@ const path = require('path');
 // Files that have been refactored and could potentially be removed
 const potentiallyUnusedFiles = [
   {
-    path: 'allure-with-screenshots.bat',
-    replacedBy: 'allure-utils.bat full',
-    canRemove: false // Keep for backward compatibility for now
-  },
-  {
     path: 'cleanup-custom-reporter.bat',
     replacedBy: 'No longer needed - CustomReporter was removed',
     canRemove: true
-  },
-  {
-    path: 'cleanup-screenshots.bat',
-    replacedBy: 'allure-utils.bat cleanup-screenshots',
-    canRemove: false // Keep for backward compatibility for now
-  },
-  {
-    path: 'generate-allure-report.bat',
-    replacedBy: 'allure-utils.bat generate',
-    canRemove: false // Keep for backward compatibility for now
-  },
-  {
-    path: 'open-report.bat',
-    replacedBy: 'allure-utils.bat open',
-    canRemove: false // Keep for backward compatibility for now
-  },
-  {
-    path: 'view-report.bat',
-    replacedBy: 'allure-utils.bat open',
-    canRemove: false // Keep for backward compatibility for now
-  },
-  {
-    path: 'view-report.js',
-    replacedBy: 'Functionality moved to allure-utils.js',
-    canRemove: false // Keep for backward compatibility for now
-  },
-  {
-    path: 'import-screenshots.js',
-    replacedBy: 'Functionality moved to allure-utils.js',
-    canRemove: false // Keep for backward compatibility for now
   }
 ];
 

@@ -11,7 +11,6 @@ import { PaymentPage } from '../pages/PaymentPage';
 import { ConfigManager } from '../utils/ConfigManager';
 import { TestDataManager } from '../testdata/testDataManager';
 import { ReportingAdapter } from '../utils/ReportingAdapter';
-import { AllureScreenshots } from '../utils/AllureScreenshots';
 
 // Initialize configuration and test data managers
 const config = ConfigManager.getInstance();
@@ -25,7 +24,6 @@ const commonData = testDataManager.getCommonHotelData();
 
 // Extract test configuration from common data
 const skipPayment = commonData.testFlags?.skipPayment || false;
-const captureScreenshots = commonData.testFlags?.captureScreenshots !== false; // Default to true if not specified
 
 test.describe('Hotel Booking Flow', () => {
   for (const hoteldata of hotelDestinations) {
@@ -33,7 +31,7 @@ test.describe('Hotel Booking Flow', () => {
       // Attach test data to report
       await ReportingAdapter.attachJson(testInfo, 'Test Data', hoteldata);
       
-      // Add test metadata for Allure report
+      // Add test metadata
       ReportingAdapter.addTestInfo(testInfo, {
         description: `Hotel booking test for ${hoteldata.name}`,
         story: 'Hotel Booking Flow',
@@ -65,16 +63,8 @@ test.describe('Hotel Booking Flow', () => {
           await homePage.ensureFocus();
           await homePage.navigateToHomepage();
           
-          if (captureScreenshots) {
-            await homePage.takeScreenshot(`homepage-${hoteldata.name}`);
-            // Also attach to report
-            await ReportingAdapter.captureScreenshot(page, testInfo, `homepage-${hoteldata.name}`);
-            // Add a direct screenshot to Allure
-            await AllureScreenshots.addScreenshot(`Homepage - ${hoteldata.name}`, async () => {
-              return await page.screenshot();
-            });
-            ReportingAdapter.reportStep(`Loaded homepage for ${hoteldata.name}`);
-          }
+          // Report step completion
+          ReportingAdapter.reportStep(`Loaded homepage for ${hoteldata.name}`);
         } catch (error: any) {
           testStatus.failureReason = `Failed to navigate to homepage: ${error.message}`;
           console.error(testStatus.failureReason);
@@ -97,7 +87,6 @@ test.describe('Hotel Booking Flow', () => {
       await test.step('Navigate to Hotels tab', async () => {
         console.log('Switching to Hotels tab...');
         await homePage.switchToHotelsTab();
-        await homePage.takeScreenshot(`hotels-tab-${hoteldata.name}`);
       });
 
       // Set destination
@@ -107,9 +96,7 @@ test.describe('Hotel Booking Flow', () => {
           console.log(`Setting destination to ${hoteldata.name}...`);
           await homePage.setDestination(hoteldata.name);
           
-          if (captureScreenshots) {
-            await homePage.takeScreenshot(`search-form-${hoteldata.name}`);
-          }
+          // Destination set successfully
         } catch (error: any) {
           testStatus.failureReason = `Failed to set destination: ${error.message}`;
           console.error(testStatus.failureReason);
@@ -176,18 +163,8 @@ test.describe('Hotel Booking Flow', () => {
           // Wait for results with extended timeout
           await hotelListingPage.waitForSearchResults(30000);
           
-          if (captureScreenshots) {
-            await page.screenshot({
-              path: `screenshots/search-results-${hoteldata.name}.png`,
-            });
-            // Also attach to report
-            await ReportingAdapter.captureScreenshot(page, testInfo, `search-results-${hoteldata.name}`);
-            // Add a direct screenshot to Allure
-            await AllureScreenshots.addScreenshot(`Search Results - ${hoteldata.name}`, async () => {
-              return await page.screenshot({ fullPage: true });
-            });
-            ReportingAdapter.reportStep(`Found search results for ${hoteldata.name}`);
-          }
+          // Report search results found
+          ReportingAdapter.reportStep(`Found search results for ${hoteldata.name}`);
           
           // Verify results and make assertions
           await hotelListingPage.verifyHotelCards(3);
@@ -204,11 +181,6 @@ test.describe('Hotel Booking Flow', () => {
         } catch (error: any) {
           testStatus.failureReason = `Failed to verify search results: ${error.message}`;
           console.error(testStatus.failureReason);
-          
-          // Take screenshot on error regardless of configuration
-          await page.screenshot({
-            path: `screenshots/search-error-${hoteldata.name}.png`,
-          });
           throw error;
         }
       });
@@ -259,10 +231,7 @@ test.describe('Hotel Booking Flow', () => {
             const { ratePlan, ratePlanIndex } = await hotelDetailsPage.selectRandomRatePlan(ratePlans);
             console.log(`Selected rate plan ${ratePlanIndex} of ${ratePlanCount}`);
             
-            if (captureScreenshots) {
-              // Take screenshot before clicking Book Now
-              await hotelDetailsPage.takeScreenshot(`before-continue-${hoteldata.name}`);
-            }
+            // Ready to click Book Now
             
             console.log('Finding Book Now button...');
             
@@ -293,9 +262,6 @@ test.describe('Hotel Booking Flow', () => {
           } catch (error: any) {
             testStatus.failureReason = `Failed during room/rate selection: ${error.message}`;
             console.error(testStatus.failureReason);
-            
-            // Take error screenshot
-            await hotelDetailsPage.takeScreenshot(`book-button-error-${hoteldata.name}`);
             throw error;
           }
         });
@@ -315,17 +281,14 @@ test.describe('Hotel Booking Flow', () => {
           expect(pageLoaded).toBe(true);
           console.log('Guest details page loaded');
           
-          if (captureScreenshots) {
-            // Take screenshot of the guest details page
-            await guestDetailsPage.takeScreenshot(`guest-details-${hoteldata.name}`);
-          }
+          // Guest details page loaded successfully
           
-          // Fill guest information using data from test data file
-          const { firstName: guestFirstName, lastName: guestLastName } = hoteldata.guestDetails;
+          // Fill guest information using data from common test data
+          const { firstName: guestFirstName, lastName: guestLastName } = commonData.guestDetails;
           await guestDetailsPage.fillGuestInformation(guestFirstName, guestLastName);
           
-          // Fill booker information using data from test data file
-          const { firstName: bookerFirstName, lastName: bookerLastName, email, phone } = hoteldata.bookerDetails;
+          // Fill booker information using data from common test data
+          const { firstName: bookerFirstName, lastName: bookerLastName, email, phone } = commonData.bookerDetails;
           await guestDetailsPage.fillBookerInformation(
             bookerFirstName, bookerLastName, email, phone
           );
@@ -351,9 +314,6 @@ test.describe('Hotel Booking Flow', () => {
         } catch (error: any) {
           testStatus.failureReason = `Failed to fill guest details: ${error.message}`;
           console.error(testStatus.failureReason);
-          
-          // Always take error screenshot
-          await guestDetailsPage.takeScreenshot(`guest-details-error-${hoteldata.name}`);
           throw error;
         }
       });
@@ -372,16 +332,10 @@ test.describe('Hotel Booking Flow', () => {
           expect(paymentPageLoaded).toBe(true);
           console.log('Payment page loaded successfully');
           
-          if (captureScreenshots) {
-            // Take screenshot of payment page
-            await paymentPage.takeScreenshot(`payment-page-${hoteldata.name}`);
-          }
+          // Payment page loaded successfully
         } catch (error: any) {
           testStatus.failureReason = `Failed to verify payment page: ${error.message}`;
           console.error(testStatus.failureReason);
-          
-          // Always take error screenshot
-          await paymentPage.takeScreenshot(`payment-page-error-${hoteldata.name}`);
           throw error;
         }
       });
@@ -393,19 +347,13 @@ test.describe('Hotel Booking Flow', () => {
             testStatus.startStep = 'Enter payment details';
             console.log('Entering payment details...');
             
-            // Fill payment details using data from test data file
-            await paymentPage.fillPaymentDetails(hoteldata.paymentDetails);
+            // Fill payment details using data from common test data
+            await paymentPage.fillPaymentDetails(commonData.paymentDetails);
             
-            if (captureScreenshots) {
-              // Take final screenshot of payment form
-              await paymentPage.takeScreenshot(`payment-form-${hoteldata.name}`);
-            }
+            // Payment details filled successfully
           } catch (error: any) {
             testStatus.failureReason = `Failed to enter payment details: ${error.message}`;
             console.error(testStatus.failureReason);
-            
-            // Always take error screenshot
-            await paymentPage.takeScreenshot(`payment-details-error-${hoteldata.name}`);
             throw error;
           }
         });
@@ -422,25 +370,7 @@ test.describe('Hotel Booking Flow', () => {
       const testDuration = endTime - startTime;
       const durationSeconds = (testDuration / 1000).toFixed(1);
       
-      // Try to capture final screenshot with a more resilient approach
-      try {
-        console.log('Taking final screenshot with safer approach...');
-        // First try with a viewport-only screenshot (non-fullPage)
-        await ReportingAdapter.captureScreenshot(page, testInfo, `final-viewport-${hoteldata.name}`, false);
-        
-        // Then try a safer approach for Allure screenshots
-        try {
-          await AllureScreenshots.addScreenshot(`Final State - ${hoteldata.name}`, async () => {
-            // Use viewport screenshot instead of fullPage
-            return await page.screenshot({ fullPage: false });
-          });
-        } catch (error: any) {
-          console.warn(`Couldn't add Allure screenshot: ${error?.message || 'Unknown error'}`);
-        }
-      } catch (error: any) {
-        console.warn(`Final screenshot failed but continuing: ${error?.message || 'Unknown error'}`);
-        // Don't fail the test if the screenshot fails
-      }
+      // Test completed successfully
       
       // Create test summary for report
       const testSummary = {
@@ -456,7 +386,7 @@ test.describe('Hotel Booking Flow', () => {
       // Attach summary to report
       await ReportingAdapter.attachJson(testInfo, 'Test Summary', testSummary);
       
-      // Add test status to Allure report
+      // Add test status to report
       if (!testStatus.success) {
         ReportingAdapter.log(testStatus.failureReason, 'error');
       } else {

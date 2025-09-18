@@ -91,43 +91,10 @@ export class TestUtils {
   }
   
   /**
-   * Take screenshot with unique name and save directly to allure-results
-   * @param page - Playwright page
-   * @param name - Base name for screenshot
-   * @param location - Optional location/name suffix
+   * @deprecated Screenshot functionality has been removed
    */
   static async takeScreenshot(page: Page, name: string, location?: string): Promise<void> {
-    const timestamp = new Date().getTime();
-    const fileName = location ? 
-      `${timestamp}-${name}-${location}.png` : 
-      `${timestamp}-${name}.png`;
-    
-    // Use allure-results directory for screenshots
-    const screenshotPath = 'allure-results';
-    
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(screenshotPath)) {
-      fs.mkdirSync(screenshotPath, { recursive: true });
-    }
-      
-    // Take the screenshot
-    await page.screenshot({
-      path: path.join(screenshotPath, fileName)
-    });
-    
-    // Create attachment metadata for Allure
-    const attachmentJson = {
-      name: location ? `${name} (${location})` : name,
-      source: fileName,
-      type: 'image/png'
-    };
-    
-    fs.writeFileSync(
-      path.join(screenshotPath, `${timestamp}-attachment.json`),
-      JSON.stringify(attachmentJson)
-    );
-    
-    console.log(`Screenshot saved to Allure results: ${fileName}`);
+    console.log(`Screenshot functionality removed. Requested: ${name}`);
   }
   
   /**
