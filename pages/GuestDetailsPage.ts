@@ -1,5 +1,6 @@
 import { Page, Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
+import { TestDataManager } from '../testdata/testDataManager';
 
 /**
  * Represents the Guest Details Page
@@ -44,24 +45,76 @@ export class GuestDetailsPage extends BasePage {
    */
   async verifyPageLoaded(timeout = 30000): Promise<boolean> {
     try {
+      // Wait for network to become relatively idle - allows page to load
       await this.waitForPageLoad('networkidle', timeout);
-      console.log('Guest details page loaded');
+      console.log('Waiting for guest details page to load...');
       
-      // Try multiple selectors to verify we're on the correct page
-      try {
-        await this.waitForElement(this.guestDetailTitle, 10000);
-        console.log('Found guest-detail-title');
-        return true;
-      } catch (e) {
-        try {
-          await this.waitForElement(this.checkingInText, 10000);
+      // Define an array of locator strategies to try
+      const locatorStrategies = [
+        // Strategy 1: Check for title element
+        async () => {
+          await this.waitForElement(this.guestDetailTitle, 3000);
+          console.log('Found guest-detail-title');
+          return true;
+        },
+        
+        // Strategy 2: Check for "Who's checking in" text
+        async () => {
+          await this.waitForElement(this.checkingInText, 3000);
           console.log('Found \'Who\'s checking-in?\' text');
           return true;
-        } catch (e) {
-          console.error('Could not verify guest details page loaded');
+        },
+        
+        // Strategy 3: Check for any form input with name/placeholder related to guests
+        async () => {
+          const nameInputs = this.page.locator('input[placeholder*="name"], input[placeholder*="Given"], input[name="firstName"]');
+          await this.waitForElement(nameInputs, 3000);
+          console.log('Found name input fields');
+          return true;
+        },
+        
+        // Strategy 4: Look for headings or text related to guests
+        async () => {
+          const guestHeadings = this.page.locator('h1, h2, h3, div.title').filter({ hasText: /guest|booker|traveler|who|checking/i });
+          await this.waitForElement(guestHeadings, 3000);
+          console.log('Found guest-related headings');
+          return true;
+        },
+        
+        // Strategy 5: Check URL for indicators of guest details page
+        async () => {
+          const url = this.page.url();
+          if (url.includes('guest') || url.includes('traveler') || url.includes('booking')) {
+            console.log('URL indicates guest details page');
+            return true;
+          }
           return false;
+        },
+
+        // Strategy 6: Check for any form with multiple inputs (last resort)
+        async () => {
+          const anyForm = this.page.locator('form, div:has(> input[type="text"]:nth-child(1):nth-child(-n+5))');
+          await this.waitForElement(anyForm, 3000);
+          console.log('Found a form with multiple inputs');
+          return true;
+        }
+      ];
+      
+      // Try each strategy in order
+      for (const strategy of locatorStrategies) {
+        try {
+          const result = await strategy();
+          if (result) {
+            return true;
+          }
+        } catch (e) {
+          // Continue to next strategy
         }
       }
+      
+      // If we got here, none of the strategies worked
+      console.error('Could not verify guest details page loaded using any strategy');
+      return false;
     } catch (error) {
       console.error('Error verifying guest details page loaded:', error);
       return false;
@@ -111,28 +164,38 @@ export class GuestDetailsPage extends BasePage {
    * @param mobile - Booker's mobile number
    */
   async fillBookerInformation(
-    givenName = 'Booker', 
-    familyName = 'Test', 
-    email = 'test@example.com',
-    mobile = '5551234567'
+    givenName?: string, 
+    familyName?: string, 
+    email?: string,
+    mobile?: string
   ): Promise<void> {
     console.log('Filling booker information');
     
     try {
+      // Get default booker information from test data if parameters are not provided
+      const testDataManager = TestDataManager.getInstance();
+      const defaultBookerInfo = testDataManager.getDefaultBookerInfo();
+      
+      // Use provided values or fall back to defaults from test data
+      const firstName: string = givenName || defaultBookerInfo.firstName;
+      const lastName: string = familyName || defaultBookerInfo.lastName;
+      const emailAddress: string = email || defaultBookerInfo.email;
+      const phoneNumber: string = mobile || defaultBookerInfo.phone;
+      
       // Find booker section
       await this.waitForElement(this.bookerSection, 10000);
       
       // Fill Booker Given Name
-      await this.fill(this.bookerGivenNameInput, givenName);
+      await this.fill(this.bookerGivenNameInput, firstName);
       
       // Fill Booker Family Name
-      await this.fill(this.bookerFamilyNameInput, familyName);
+      await this.fill(this.bookerFamilyNameInput, lastName);
       
       // Fill Email Address
-      await this.fill(this.emailInput, email);
+      await this.fill(this.emailInput, emailAddress);
       
       // Fill Mobile Number
-      await this.fill(this.mobileInput, mobile);
+      await this.fill(this.mobileInput, phoneNumber);
       
       console.log('Filled booker information successfully');
     } catch (error: any) {

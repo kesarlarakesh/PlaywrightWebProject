@@ -175,15 +175,7 @@ export class BasePage {
     return await locator.textContent() || '';
   }
 
-  /**
-   * Take a screenshot with a specified name and save to screenshots directory
-   * @param name - Name of the screenshot file
-   * @deprecated This method has been removed as part of screenshot cleanup
-   */
-  async takeScreenshot(name: string): Promise<void> {
-    // Screenshot functionality removed
-    console.log(`Screenshot functionality removed. Requested: ${name}`);
-  }
+ 
 
   /**
    * Scroll to element
