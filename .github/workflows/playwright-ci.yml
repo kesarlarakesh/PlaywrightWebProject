@@ -10,6 +10,17 @@ on:
   schedule:
     # Run daily at 5 PM UTC
     - cron: '0 17 * * *'
+  workflow_dispatch:
+    inputs:
+      test_environment:
+        description: 'Test environment to run'
+        required: true
+        default: 'lambdatest'
+        type: choice
+        options:
+          - local
+          - lambdatest
+          - both
 
 jobs:
   lint:
@@ -53,39 +64,47 @@ jobs:
     needs: [lint, vulnerability-scan]
     strategy:
       matrix:
-        test-mode: [local, lambdatest]
+        include:
+          - test-mode: local
+            run: ${{ github.event.inputs.test_environment == 'both' || github.event.inputs.test_environment == 'local' || github.event.inputs.test_environment == null }}
+          - test-mode: lambdatest
+            run: ${{ github.event.inputs.test_environment == 'both' || github.event.inputs.test_environment == 'lambdatest' }}
       fail-fast: false
     env:
-      USE_LAMBDATEST: ${{ matrix.test-mode == 'lambdatest' }}
+      USE_LAMBDATEST: ${{ matrix.test-mode == 'lambdatest' && 'true' || 'false' }}
       LT_USERNAME: ${{ secrets.LT_USERNAME }}
       LT_ACCESS_KEY: ${{ secrets.LT_ACCESS_KEY }}
     steps:
       - name: Checkout code
+        if: matrix.run
         uses: actions/checkout@v4
       - name: Setup Node
+        if: matrix.run
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
       - name: Install dependencies
+        if: matrix.run
         run: npm install
       
       # Only install browsers for local testing
       - name: Install Playwright Browsers
-        if: matrix.test-mode == 'local'
+        if: matrix.run && matrix.test-mode == 'local'
         run: npx playwright install --with-deps chromium
       
       # Install LambdaTest Playwright for cloud testing
       - name: Install LambdaTest Playwright
-        if: matrix.test-mode == 'lambdatest'
+        if: matrix.run && matrix.test-mode == 'lambdatest'
         run: npm install @lambdatest/playwright-driver --save-dev
       
       # Run tests (different mode based on matrix)
       - name: Run Playwright tests (${{ matrix.test-mode }} mode)
+        if: matrix.run
         run: npm run test
       
       - name: Upload test results
-        if: always()
+        if: matrix.run && always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-${{ matrix.test-mode }}

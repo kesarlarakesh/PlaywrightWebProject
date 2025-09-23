@@ -85,7 +85,7 @@ export default defineConfig({
       name: 'chrome:latest:Windows 10@lambda',
       use: {
         connectOptions: {
-          wsEndpoint: `wss://cdp.lambdatest.com/playwright?capabilities={"browserName":"Chrome","browserVersion":"latest","LT:Options":{"platform":"Windows 10","build":"Playwright Build","name":"Playwright Test - Windows Chrome","user":"${LT_USERNAME}","accessKey":"${LT_ACCESS_KEY}","network":true,"video":true,"console":true,"tunnel":false}}`,
+          wsEndpoint: `wss://cdp.lambdatest.com/playwright?capabilities={"browserName":"Chrome","browserVersion":"latest","LT:Options":{"platform":"Windows 10","build":"Playwright Build","name":"Playwright Test - Windows Chrome","user":"${encodeURIComponent(LT_USERNAME)}","accessKey":"${encodeURIComponent(LT_ACCESS_KEY)}","network":true,"video":true,"console":true,"tunnel":false}}`,
         },
       },
     },
@@ -93,7 +93,7 @@ export default defineConfig({
       name: 'chrome:latest:MacOS Ventura@lambda',
       use: {
         connectOptions: {
-          wsEndpoint: `wss://cdp.lambdatest.com/playwright?capabilities={"browserName":"Chrome","browserVersion":"latest","LT:Options":{"platform":"MacOS Ventura","build":"Playwright Build","name":"Playwright Test - MacOS Chrome","user":"${LT_USERNAME}","accessKey":"${LT_ACCESS_KEY}","network":true,"video":true,"console":true,"tunnel":false}}`,
+          wsEndpoint: `wss://cdp.lambdatest.com/playwright?capabilities={"browserName":"Chrome","browserVersion":"latest","LT:Options":{"platform":"MacOS Ventura","build":"Playwright Build","name":"Playwright Test - MacOS Chrome","user":"${encodeURIComponent(LT_USERNAME)}","accessKey":"${encodeURIComponent(LT_ACCESS_KEY)}","network":true,"video":true,"console":true,"tunnel":false}}`,
         },
       },
     }
