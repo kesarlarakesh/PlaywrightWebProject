@@ -9,11 +9,5 @@ node_modules/
 # Old screenshot directory (no longer used)
 /screenshots/
 
-# Allure report output (generated reports)
+# Generated reports
 # We keep configurations but not the generated reports
-/allure-report/
-/allure-results/
-
-# But keep test history and selected screenshots for baseline comparisons
-!/allure-results/history/
-!/allure-results/baseline-*.png

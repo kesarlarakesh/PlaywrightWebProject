@@ -8,22 +8,6 @@
         "dates": {
           "checkInDaysFromNow": 7,
           "stayDuration": 3
-        },
-        "guestDetails": {
-          "firstName": "Test",
-          "lastName": "User"
-        },
-        "bookerDetails": {
-          "firstName": "Booker",
-          "lastName": "Test",
-          "email": "test@example.com",
-          "phone": "5551234567"
-        },
-        "paymentDetails": {
-          "cardNumber": "4111111111111111",
-          "cardholderName": "Test User",
-          "expiryDate": "12/28",
-          "cvv": "123"
         }
       },
       {
@@ -33,22 +17,6 @@
         "dates": {
           "checkInDaysFromNow": 14,
           "stayDuration": 4
-        },
-        "guestDetails": {
-          "firstName": "Jane",
-          "lastName": "Doe"
-        },
-        "bookerDetails": {
-          "firstName": "John",
-          "lastName": "Doe",
-          "email": "john.doe@example.com",
-          "phone": "5559876543"
-        },
-        "paymentDetails": {
-          "cardNumber": "4111111111111111",
-          "cardholderName": "John Doe",
-          "expiryDate": "10/27",
-          "cvv": "456"
         }
       }
     ],
@@ -62,8 +30,23 @@
         "filterByStarRating": 4
       },
       "testFlags": {
-        "skipPayment": false,
-        "captureScreenshots": true
+        "skipPayment": false
+      },
+      "guestDetails": {
+        "firstName": "Test",
+        "lastName": "User"
+      },
+      "bookerDetails": {
+        "firstName": "Booker",
+        "lastName": "Test",
+        "email": "test@example.com",
+        "phone": "5551234567"
+      },
+      "paymentDetails": {
+        "cardNumber": "4111111111111111",
+        "cardholderName": "Test User",
+        "expiryDate": "12/28",
+        "cvv": "123"
       }
     }
   }

@@ -19,6 +19,5 @@
       "headless": true
     }
   },
-  "defaultEnvironment": "prod",
-  "screenshotPath": "allure-results"
+  "defaultEnvironment": "prod"
 }

@@ -180,9 +180,6 @@ export class HomePage extends BasePage {
     } catch (error: any) {
       console.error(`Error during hotel search: ${error.message}`);
       
-      // Take screenshot for debugging
-      await this.takeScreenshot('search-error');
-      
       // Re-throw error to let calling code handle it
       throw new Error(`Hotel search failed: ${error.message}`);
     }

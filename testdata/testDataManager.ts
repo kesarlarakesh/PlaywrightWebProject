@@ -121,29 +121,30 @@ export class TestDataManager {
   }
   
   /**
-   * Get default guest information from config
-   * @returns - Default guest information
+   * Get default guest information directly from testdata.json
+   * @returns - Default guest information from common data
    */
   public getDefaultGuestInfo(): any {
-    return this.config.getTestData('defaultGuestInfo', {
-      firstName: 'Test',
-      lastName: 'User',
-      email: 'test@example.com',
-      phone: '5551234567'
-    });
+    const testData = this.getTestData();
+    return testData.hotels.commonData.guestDetails;
   }
   
   /**
-   * Get default payment information from config
-   * @returns - Default payment information
+   * Get default payment information directly from testdata.json
+   * @returns - Default payment information from common data
    */
   public getDefaultPaymentInfo(): any {
-    return this.config.getTestData('defaultPaymentInfo', {
-      cardNumber: '4111111111111111',
-      cardHolder: 'Test User',
-      expiryDate: '12/28',
-      cvv: '123'
-    });
+    const testData = this.getTestData();
+    return testData.hotels.commonData.paymentDetails;
+  }
+  
+  /**
+   * Get default booker information directly from testdata.json
+   * @returns - Default booker information from common data
+   */
+  public getDefaultBookerInfo(): any {
+    const testData = this.getTestData();
+    return testData.hotels.commonData.bookerDetails;
   }
   
   /**

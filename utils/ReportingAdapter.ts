@@ -1,43 +1,17 @@
 import { ReportingUtils } from './ReportingUtils';
-import { AllureReporter } from './AllureReporter';
-import { Page, TestInfo } from '@playwright/test';
+import { TestInfo } from '@playwright/test';
 
 /**
- * Adapter class that uses both the ReportingUtils and AllureReporter
- * to provide comprehensive reporting capabilities
+ * Adapter class that uses ReportingUtils to provide reporting capabilities
  */
 export class ReportingAdapter {
-  /**
-   * Capture screenshot and add to reports
-   * @param page - Playwright page
-   * @param testInfo - Test info object
-   * @param name - Screenshot name
-   * @param fullPage - Whether to take a full page screenshot
-   */
-  static async captureScreenshot(
-    page: Page, 
-    testInfo: TestInfo, 
-    name: string, 
-    fullPage = false
-  ): Promise<string> {
-    // First handle Allure reporting (primary reporting mechanism)
-    await AllureReporter.attachScreenshot(page, testInfo, name, fullPage);
-    
-    // Then handle legacy reporting mechanism
-    const path = fullPage 
-      ? await ReportingUtils.captureFullPageScreenshot(page, testInfo, name)
-      : await ReportingUtils.captureScreenshot(page, testInfo, name);
-    
-    return path;
-  }
-
   /**
    * Report a step with status
    * @param name - Step name
    * @param status - Step status
    */
   static reportStep(name: string, status: 'passed' | 'failed' = 'passed'): void {
-    AllureReporter.reportStep(name, status);
+    console.log(`Step ${status}: ${name}`);
   }
 
   /**
@@ -47,7 +21,15 @@ export class ReportingAdapter {
    * @returns Result of the callback
    */
   static async step<T>(name: string, callback: () => Promise<T>): Promise<T> {
-    return AllureReporter.step(name, callback);
+    console.log(`Step: ${name}`);
+    try {
+      const result = await callback();
+      console.log(`Step completed: ${name}`);
+      return result;
+    } catch (error) {
+      console.error(`Step failed: ${name}`, error);
+      throw error;
+    }
   }
 
   /**
@@ -56,7 +38,13 @@ export class ReportingAdapter {
    * @param level - Log level
    */
   static log(message: string, level: 'info' | 'warn' | 'error' = 'info'): void {
-    AllureReporter.log(message, level);
+    if (level === 'info') {
+      console.log(message);
+    } else if (level === 'warn') {
+      console.warn(message);
+    } else {
+      console.error(message);
+    }
   }
 
   /**
@@ -67,7 +55,6 @@ export class ReportingAdapter {
    */
   static async attachJson(testInfo: TestInfo, name: string, data: any): Promise<void> {
     await ReportingUtils.attachJson(testInfo, name, data);
-    await AllureReporter.attachJson(testInfo, name, data);
   }
 
   /**
@@ -96,6 +83,15 @@ export class ReportingAdapter {
       tags?: string[];
     }
   ): void {
-    AllureReporter.setTestInfo(testInfo, info);
+    // Add annotations to testInfo
+    if (info.description) {
+      testInfo.annotations.push({ type: 'description', description: info.description });
+    }
+    
+    if (info.tags && info.tags.length > 0) {
+      for (const tag of info.tags) {
+        testInfo.annotations.push({ type: 'tag', description: tag });
+      }
+    }
   }
 }
