@@ -51,6 +51,14 @@ jobs:
     name: Run Playwright Tests
     runs-on: ubuntu-latest
     needs: [lint, vulnerability-scan]
+    strategy:
+      matrix:
+        test-mode: [local, lambdatest]
+      fail-fast: false
+    env:
+      USE_LAMBDATEST: ${{ matrix.test-mode == 'lambdatest' }}
+      LT_USERNAME: ${{ secrets.LT_USERNAME }}
+      LT_ACCESS_KEY: ${{ secrets.LT_ACCESS_KEY }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -61,15 +69,26 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm install
+      
+      # Only install browsers for local testing
       - name: Install Playwright Browsers
+        if: matrix.test-mode == 'local'
         run: npx playwright install --with-deps chromium
-      - name: Run Playwright tests
+      
+      # Install LambdaTest Playwright for cloud testing
+      - name: Install LambdaTest Playwright
+        if: matrix.test-mode == 'lambdatest'
+        run: npm install @lambdatest/playwright-driver --save-dev
+      
+      # Run tests (different mode based on matrix)
+      - name: Run Playwright tests (${{ matrix.test-mode }} mode)
         run: npm run test
+      
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.test-mode }}
           path: |
             playwright-report/
             test-results/

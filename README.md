@@ -1,6 +1,6 @@
 # Playwright Web Testing Project
 
-This project implements automated end-to-end tests for hotel booking using Playwright and the Page Object Model design pattern.
+This project implements automated end-to-end tests for hotel booking using Playwright and the Page Object Model design pattern. It supports both local test execution and cloud testing via LambdaTest.
 
 ## Project Structure
 
@@ -37,12 +37,19 @@ PlaywrightWebProject/
 - Node.js (v14 or higher)
 - npm (v6 or higher)
 - Playwright Test
+- LambdaTest account (for cloud testing)
 
 ## Installation
 
 ```bash
+# Install project dependencies
 npm install
+
+# Install Playwright browsers locally
 npx playwright install
+
+# For LambdaTest cloud execution
+npm install @lambdatest/playwright-driver --save-dev
 ```
 
 ## Running Tests
@@ -62,10 +69,28 @@ npm run test:hotel:headless
 # Run tests in headed mode (browser visible, good for debugging)
 npm run test:hotel:headed
 
-# Or use the batch files
+# Run tests on LambdaTest cloud platform
+npm run test:lambdatest
+
+# Run hotel booking test on LambdaTest
+npm run test:hotel:lambdatest
+
+# Or use the batch files for local execution
 run-tests-headless.bat
 run-tests-headed.bat
 ```
+
+### LambdaTest Integration
+
+This project supports running tests on the LambdaTest cloud platform. To use LambdaTest:
+
+1. Create a LambdaTest account at [lambdatest.com](https://www.lambdatest.com/)
+2. Set up environment variables:
+   - `LT_USERNAME` - Your LambdaTest username
+   - `LT_ACCESS_KEY` - Your LambdaTest access key
+   - `USE_LAMBDATEST=true` - To enable LambdaTest execution
+
+The workflow will automatically run tests on both local browsers and LambdaTest cloud.
 
 ## Test Reports
 
