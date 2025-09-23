@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "type": "module",
   "scripts": {
     "test": "npx playwright test",
     "test:hotel": "npx playwright test tests/hotel_e2e.spec.ts -g \"Verify hotel funnel check\" --workers=1",
