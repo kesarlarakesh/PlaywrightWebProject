@@ -123,12 +123,30 @@ jobs:
             fi
             
             echo "Extracting test statistics with jq"
-            # Use Playwright's JSON format structure
-            PASSED=$(jq '[.. | objects | select(.status == "passed" or .status == "expected")] | length' "$JSON_PATH" || echo 0)
-            FAILED=$(jq '[.. | objects | select(.status == "failed" or .status == "unexpected")] | length' "$JSON_PATH" || echo 0)
-            FLAKY=$(jq '[.. | objects | select(.status == "flaky")] | length' "$JSON_PATH" || echo 0)
-            SKIPPED=$(jq '[.. | objects | select(.status == "skipped")] | length' "$JSON_PATH" || echo 0)
-            TOTAL=$((PASSED + FAILED + FLAKY + SKIPPED))
+            # Use Playwright's precise JSON structure to count only actual tests
+            # First, check the structure to determine the proper jq query
+            if jq '.suites[0].suites[0].specs' "$JSON_PATH" | grep -q -v "null"; then
+              echo "Using standard Playwright test structure"
+              # Count specs directly - this represents the actual test cases
+              TOTAL_SPECS=$(jq '.suites[0].suites[0].specs | length' "$JSON_PATH" || echo 0)
+              echo "Found $TOTAL_SPECS test specifications"
+              
+              # Count test results by status
+              PASSED=$(jq '[.suites[0].suites[0].specs[].tests[].results[] | select(.status == "passed" or .status == "expected")] | length' "$JSON_PATH" || echo 0)
+              FAILED=$(jq '[.suites[0].suites[0].specs[].tests[].results[] | select(.status == "failed" or .status == "unexpected")] | length' "$JSON_PATH" || echo 0)
+              FLAKY=$(jq '[.suites[0].suites[0].specs[].tests[].results[] | select(.status == "flaky")] | length' "$JSON_PATH" || echo 0)
+              SKIPPED=$(jq '[.suites[0].suites[0].specs[].tests[].results[] | select(.status == "skipped")] | length' "$JSON_PATH" || echo 0)
+              
+              # Use spec count as total tests, which matches your test case count
+              TOTAL=$TOTAL_SPECS
+            else
+              echo "Falling back to simpler test counting"
+              PASSED=$(jq '[.. | objects | select(.status == "passed" or .status == "expected")] | length' "$JSON_PATH" || echo 0)
+              FAILED=$(jq '[.. | objects | select(.status == "failed" or .status == "unexpected")] | length' "$JSON_PATH" || echo 0)
+              FLAKY=$(jq '[.. | objects | select(.status == "flaky")] | length' "$JSON_PATH" || echo 0)
+              SKIPPED=$(jq '[.. | objects | select(.status == "skipped")] | length' "$JSON_PATH" || echo 0)
+              TOTAL=$((PASSED + FAILED + FLAKY + SKIPPED))
+            fi
           else
             echo "No valid test report found. Using default values."
             TOTAL="0"
