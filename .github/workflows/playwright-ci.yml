@@ -94,30 +94,43 @@ jobs:
       - name: Extract Test Statistics
         id: extract-stats
         run: |
-          # Check if test-results/json-report.json exists
+          # Check for test results file
+          echo "Looking for test results..."
+          
+          # First check standard location
           if [ -f "test-results/json-report.json" ]; then
-            echo "Found test-results/json-report.json file"
-            # Extract test statistics using jq if available
-            if command -v jq &> /dev/null; then
-              echo "Using jq to parse JSON"
-              # Playwright JSON report format is different from what we expected before
-              TOTAL=$(jq '.suites[0].specs | length' test-results/json-report.json)
-              PASSED=$(jq '[.suites[0].specs[].tests[] | select(.status == "passed")] | length' test-results/json-report.json)
-              FAILED=$(jq '[.suites[0].specs[].tests[] | select(.status == "failed")] | length' test-results/json-report.json)
-              FLAKY=$(jq '[.suites[0].specs[].tests[] | select(.status == "flaky")] | length' test-results/json-report.json)
-              SKIPPED=$(jq '[.suites[0].specs[].tests[] | select(.status == "skipped")] | length' test-results/json-report.json)
-            else
-              echo "jq not available, using grep/awk fallback"
-              # This is a rough approximation since parsing JSON with grep is not ideal
-              PASSED=$(grep -c '"status":"passed"' test-results/json-report.json || echo 0)
-              FAILED=$(grep -c '"status":"failed"' test-results/json-report.json || echo 0)
-              FLAKY=$(grep -c '"status":"flaky"' test-results/json-report.json || echo 0)
-              SKIPPED=$(grep -c '"status":"skipped"' test-results/json-report.json || echo 0)
-              TOTAL=$((PASSED + FAILED + FLAKY + SKIPPED))
-            fi
+            JSON_PATH="test-results/json-report.json"
+            echo "Found report at: $JSON_PATH"
           else
-            echo "No test result data found"
-            # Default values if no results exist
+            # Look for any JSON files in test-results directory
+            JSON_FILES=$(find . -path "*/test-results/*.json" 2>/dev/null)
+            
+            if [ -n "$JSON_FILES" ]; then
+              JSON_PATH=$(echo "$JSON_FILES" | head -n 1)
+              echo "Using alternative report: $JSON_PATH"
+            else
+              echo "No test report files found"
+              JSON_PATH=""
+            fi
+          fi
+          
+          # Process test results if file exists
+          if [ -n "$JSON_PATH" ] && [ -f "$JSON_PATH" ]; then
+            # Install jq if not available (ensures it's present)
+            if ! command -v jq &> /dev/null; then
+              echo "Installing jq for JSON parsing"
+              apt-get update && apt-get install -y jq
+            fi
+            
+            echo "Extracting test statistics with jq"
+            # Use Playwright's JSON format structure
+            PASSED=$(jq '[.. | objects | select(.status == "passed" or .status == "expected")] | length' "$JSON_PATH" || echo 0)
+            FAILED=$(jq '[.. | objects | select(.status == "failed" or .status == "unexpected")] | length' "$JSON_PATH" || echo 0)
+            FLAKY=$(jq '[.. | objects | select(.status == "flaky")] | length' "$JSON_PATH" || echo 0)
+            SKIPPED=$(jq '[.. | objects | select(.status == "skipped")] | length' "$JSON_PATH" || echo 0)
+            TOTAL=$((PASSED + FAILED + FLAKY + SKIPPED))
+          else
+            echo "No valid test report found. Using default values."
             TOTAL="0"
             PASSED="0"
             FAILED="0"
