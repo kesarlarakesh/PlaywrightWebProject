@@ -62,52 +62,48 @@ jobs:
     name: Run Playwright Tests
     runs-on: ubuntu-latest
     needs: [lint, vulnerability-scan]
-    strategy:
-      matrix:
-        include:
-          - test-mode: local
-            run: ${{ github.event.inputs.test_environment == 'both' || github.event.inputs.test_environment == 'local' || github.event.inputs.test_environment == null }}
-          - test-mode: lambdatest
-            run: ${{ github.event.inputs.test_environment == 'both' || github.event.inputs.test_environment == 'lambdatest' }}
-      fail-fast: false
     env:
-      USE_LAMBDATEST: ${{ matrix.test-mode == 'lambdatest' && 'true' || 'false' }}
+      USE_LAMBDATEST: ${{ (github.event.inputs.test_environment == 'lambdatest' || github.event.inputs.test_environment == 'both') && 'true' || 'false' }}
       LT_USERNAME: ${{ secrets.LT_USERNAME }}
       LT_ACCESS_KEY: ${{ secrets.LT_ACCESS_KEY }}
+      TEST_MODE: ${{ github.event.inputs.test_environment || 'local' }}
     steps:
       - name: Checkout code
-        if: matrix.run
         uses: actions/checkout@v4
+      
       - name: Setup Node
-        if: matrix.run
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
+      
       - name: Install dependencies
-        if: matrix.run
         run: npm install
       
       # Only install browsers for local testing
       - name: Install Playwright Browsers
-        if: matrix.run && matrix.test-mode == 'local'
+        if: github.event.inputs.test_environment != 'lambdatest'
         run: npx playwright install --with-deps chromium
       
       # Install LambdaTest Playwright for cloud testing
       - name: Install LambdaTest Playwright
-        if: matrix.run && matrix.test-mode == 'lambdatest'
+        if: github.event.inputs.test_environment == 'lambdatest' || github.event.inputs.test_environment == 'both'
         run: npm install @lambdatest/playwright-driver --save-dev
       
-      # Run tests (different mode based on matrix)
-      - name: Run Playwright tests (${{ matrix.test-mode }} mode)
-        if: matrix.run
-        run: npm run test
+      # Run tests
+      - name: Run Playwright tests (Local)
+        if: github.event.inputs.test_environment == 'local' || github.event.inputs.test_environment == 'both' || github.event.inputs.test_environment == null
+        run: cross-env USE_LAMBDATEST=false npm run test
+      
+      - name: Run Playwright tests (LambdaTest)
+        if: github.event.inputs.test_environment == 'lambdatest' || github.event.inputs.test_environment == 'both'
+        run: cross-env USE_LAMBDATEST=true npm run test
       
       - name: Upload test results
-        if: matrix.run && always()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ matrix.test-mode }}
+          name: playwright-report-${{ github.event.inputs.test_environment || 'local' }}
           path: |
             playwright-report/
             test-results/
@@ -127,7 +123,7 @@ jobs:
       - name: Download test results
         uses: actions/download-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ github.event.inputs.test_environment || 'local' }}
           path: ./
       - name: Extract Test Statistics
         id: extract-stats
