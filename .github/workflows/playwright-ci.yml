@@ -93,11 +93,15 @@ jobs:
       # Run tests
       - name: Run Playwright tests (Local)
         if: github.event.inputs.test_environment == 'local' || github.event.inputs.test_environment == 'both'
-        run: cross-env USE_LAMBDATEST=false npm run test
+        env:
+          USE_LAMBDATEST: false
+        run: npm run test
       
       - name: Run Playwright tests (LambdaTest)
         if: github.event.inputs.test_environment == 'lambdatest' || github.event.inputs.test_environment == 'both' || github.event.inputs.test_environment == null
-        run: cross-env USE_LAMBDATEST=true npm run test
+        env:
+          USE_LAMBDATEST: true
+        run: npm run test
       
       - name: Upload test results
         if: always()
