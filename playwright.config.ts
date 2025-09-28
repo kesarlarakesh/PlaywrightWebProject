@@ -7,6 +7,14 @@ import { ReporterManager } from './utils/reporter/ReporterManager';
 const testEnv = process.env.TEST_ENV || 'prod';
 console.log(`Running tests with environment: ${testEnv}`);
 
+// Check if we should use LambdaTest
+const useLambdaTest = process.env.USE_LAMBDATEST === 'true';
+console.log(`Using LambdaTest: ${useLambdaTest}`);
+
+// Set up LambdaTest configuration
+const LT_USERNAME = process.env.LT_USERNAME || '';
+const LT_ACCESS_KEY = process.env.LT_ACCESS_KEY || '';
+
 // Import the specific configuration file if it exists
 const configPath = path.join(__dirname, 'config', 'config.json');
 if (fs.existsSync(configPath)) {
@@ -71,17 +79,36 @@ export default defineConfig({
 
 
   /* Configure projects for major browsers */
-  projects: [
+  projects: useLambdaTest ? [
+    // LambdaTest Cloud Configurations
+    {
+      name: 'chrome:latest:Windows 10@lambda',
+      use: {
+        connectOptions: {
+          wsEndpoint: `wss://cdp.lambdatest.com/playwright?capabilities={"browserName":"Chrome","browserVersion":"latest","LT:Options":{"platform":"Windows 10","build":"Playwright Build","name":"Playwright Test - Windows Chrome","user":"${encodeURIComponent(LT_USERNAME)}","accessKey":"${encodeURIComponent(LT_ACCESS_KEY)}","network":true,"video":true,"console":true,"tunnel":false}}`,
+        },
+      },
+    },
+    {
+      name: 'chrome:latest:MacOS Ventura@lambda',
+      use: {
+        connectOptions: {
+          wsEndpoint: `wss://cdp.lambdatest.com/playwright?capabilities={"browserName":"Chrome","browserVersion":"latest","LT:Options":{"platform":"MacOS Ventura","build":"Playwright Build","name":"Playwright Test - MacOS Chrome","user":"${encodeURIComponent(LT_USERNAME)}","accessKey":"${encodeURIComponent(LT_ACCESS_KEY)}","network":true,"video":true,"console":true,"tunnel":false}}`,
+        },
+      },
+    }
+  ] : [
+    // Local Browser Configurations
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-
+    
+    // Uncomment these for additional browsers when needed
     // {
     //   name: 'firefox',
     //   use: { ...devices['Desktop Firefox'] },
     // },
-
     // {
     //   name: 'webkit',
     //   use: { ...devices['Desktop Safari'] },
