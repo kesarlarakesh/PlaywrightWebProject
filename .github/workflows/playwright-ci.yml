@@ -22,6 +22,10 @@ on:
           - lambdatest
           - both
 
+# Set minimal permissions for GITHUB_TOKEN
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest

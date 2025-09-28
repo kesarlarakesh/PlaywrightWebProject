@@ -15,6 +15,24 @@ console.log(`Using LambdaTest: ${useLambdaTest}`);
 const LT_USERNAME = process.env.LT_USERNAME || '';
 const LT_ACCESS_KEY = process.env.LT_ACCESS_KEY || '';
 
+// Generate dynamic build name for LambdaTest
+const generateBuildName = () => {
+  const now = new Date();
+  const timestamp = now.toISOString().replace(/[:.]/g, '-').substring(0, 19); // YYYY-MM-DDTHH-MM-SS
+  const gitBranch = process.env.GITHUB_REF_NAME || process.env.BRANCH_NAME || 'local';
+  const gitSha = process.env.GITHUB_SHA ? process.env.GITHUB_SHA.substring(0, 7) : 'dev';
+  const runId = process.env.GITHUB_RUN_ID || `local-${Math.floor(Math.random() * 10000)}`;
+  const environment = testEnv.toUpperCase();
+  
+  // Format: PW-ENV-BRANCH-SHA-RUNID-TIMESTAMP
+  return `PW-${environment}-${gitBranch}-${gitSha}-${runId}-${timestamp}`;
+};
+
+const buildName = useLambdaTest ? generateBuildName() : '';
+if (useLambdaTest) {
+  console.log(`LambdaTest Build Name: ${buildName}`);
+}
+
 // Import the specific configuration file if it exists
 const configPath = path.join(__dirname, 'config', 'config.json');
 if (fs.existsSync(configPath)) {
@@ -85,7 +103,7 @@ export default defineConfig({
       name: 'chrome:latest:Windows 10@lambda',
       use: {
         connectOptions: {
-          wsEndpoint: `wss://cdp.lambdatest.com/playwright?capabilities={"browserName":"Chrome","browserVersion":"latest","LT:Options":{"platform":"Windows 10","build":"Playwright Build","name":"Playwright Test - Windows Chrome","user":"${encodeURIComponent(LT_USERNAME)}","accessKey":"${encodeURIComponent(LT_ACCESS_KEY)}","network":true,"video":true,"console":true,"tunnel":false}}`,
+          wsEndpoint: `wss://cdp.lambdatest.com/playwright?capabilities={"browserName":"Chrome","browserVersion":"latest","LT:Options":{"platform":"Windows 10","build":"${buildName}","name":"Hotel Booking E2E - Windows Chrome","project":"PlaywrightWebProject","user":"${encodeURIComponent(LT_USERNAME)}","accessKey":"${encodeURIComponent(LT_ACCESS_KEY)}","network":true,"video":true,"console":true,"tunnel":false,"smartUI.project":"PlaywrightWebProject"}}`,
         },
       },
     },
@@ -93,7 +111,7 @@ export default defineConfig({
       name: 'chrome:latest:MacOS Ventura@lambda',
       use: {
         connectOptions: {
-          wsEndpoint: `wss://cdp.lambdatest.com/playwright?capabilities={"browserName":"Chrome","browserVersion":"latest","LT:Options":{"platform":"MacOS Ventura","build":"Playwright Build","name":"Playwright Test - MacOS Chrome","user":"${encodeURIComponent(LT_USERNAME)}","accessKey":"${encodeURIComponent(LT_ACCESS_KEY)}","network":true,"video":true,"console":true,"tunnel":false}}`,
+          wsEndpoint: `wss://cdp.lambdatest.com/playwright?capabilities={"browserName":"Chrome","browserVersion":"latest","LT:Options":{"platform":"MacOS Ventura","build":"${buildName}","name":"Hotel Booking E2E - MacOS Chrome","project":"PlaywrightWebProject","user":"${encodeURIComponent(LT_USERNAME)}","accessKey":"${encodeURIComponent(LT_ACCESS_KEY)}","network":true,"video":true,"console":true,"tunnel":false,"smartUI.project":"PlaywrightWebProject"}}`,
         },
       },
     }
