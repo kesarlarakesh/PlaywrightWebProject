@@ -117,62 +117,78 @@ jobs:
       
       - name: Authenticate to Google Cloud
         if: always()
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+        run: |
+          echo "🔐 Setting up Google Cloud Authentication..."
+          
+          # Check if secret exists
+          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" ]; then
+            echo "❌ GCP_SERVICE_ACCOUNT_KEY secret is not set"
+            echo "   Please add your service account JSON to GitHub secrets"
+            exit 1
+          fi
+          
+          # Create service account key file
+          echo '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}' > /tmp/gcp-key.json
+          
+          # Validate JSON format
+          if ! jq empty /tmp/gcp-key.json 2>/dev/null; then
+            echo "❌ Invalid JSON format in GCP_SERVICE_ACCOUNT_KEY"
+            echo "   Please ensure the secret contains valid JSON"
+            exit 1
+          fi
+          
+          # Extract service account info for debugging
+          PROJECT_ID=$(jq -r '.project_id' /tmp/gcp-key.json)
+          CLIENT_EMAIL=$(jq -r '.client_email' /tmp/gcp-key.json)
+          
+          echo "✅ Service Account: $CLIENT_EMAIL"
+          echo "✅ Project ID: $PROJECT_ID"
+          
+          # Activate service account
+          gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
+          
+          # Set project
+          gcloud config set project $PROJECT_ID
+          
+          # Verify authentication
+          echo "� Verifying authentication..."
+          gcloud auth list --format="table(account,status)"
       
       - name: Debug GCS Authentication
         if: always()
         run: |
-          echo "🔍 Debugging Google Cloud Authentication..."
-          
-          # Check if credentials are loaded
-          if [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
-            echo "✅ GOOGLE_APPLICATION_CREDENTIALS is set"
-          else
-            echo "❌ GOOGLE_APPLICATION_CREDENTIALS is not set"
-          fi
+          echo "🔍 Testing Google Cloud Authentication..."
           
           # Test authentication
-          echo "🔐 Testing authentication..."
-          gcloud auth list --format="table(account,status)" || echo "❌ Auth list failed"
+          echo "🔐 Current authenticated accounts:"
+          gcloud auth list --format="table(account,status)"
           
           # Check project configuration
-          echo "📋 Checking project configuration..."
-          gcloud config get-value project || echo "❌ No project configured"
+          echo "📋 Current project:"
+          gcloud config get-value project
+          
+          # Test gsutil authentication
+          echo "🛠️ Testing gsutil configuration..."
+          gsutil version
           
           # Test bucket access
           echo "🪣 Testing bucket access..."
-          gsutil ls gs://testautomationweb || echo "❌ Bucket access failed - this is the main issue"
-          
-          # Test basic gsutil functionality
-          echo "🛠️ Testing gsutil configuration..."
-          gsutil version || echo "❌ gsutil version failed"
+          if gsutil ls gs://testautomationweb; then
+            echo "✅ Bucket access successful!"
+          else
+            echo "❌ Bucket access failed"
+            echo "   This indicates either:"
+            echo "   1. Bucket doesn't exist"
+            echo "   2. Service account lacks storage.objects.list permission"
+            echo "   3. Service account lacks storage.buckets.get permission"
+          fi
       
       - name: Upload Playwright Reports to Google Cloud Storage
         if: always()
         id: upload-reports
         run: |
-          # Get environment type for folder organization
-          ENV_TYPE="${{ github.event.inputs.test_environment || 'lambdatest' }}"
-          
-          # Create folder name in GCS bucket
-          GCS_FOLDER="playwright-reports/${ENV_TYPE}"
-          BUCKET_NAME="testautomationweb"
-          
           echo "📤 Starting Playwright Reports upload to Google Cloud Storage..."
           
-          # Verify authentication before attempting upload
-          echo "🔐 Verifying authentication status..."
-          if ! gcloud auth list --filter="status:ACTIVE" --format="value(account)" | grep -q "@"; then
-            echo "❌ No active authentication found. Upload will fail."
-            echo "   Please check the GCP_SERVICE_ACCOUNT_KEY secret configuration."
-            exit 1
-          else
-            echo "✅ Authentication verified"
-            gcloud auth list --filter="status:ACTIVE" --format="table(account,status)"
-          fi
-          
           # Get environment type for folder organization
           ENV_TYPE="${{ github.event.inputs.test_environment || 'lambdatest' }}"
           
@@ -180,7 +196,17 @@ jobs:
           GCS_FOLDER="playwright-reports/${ENV_TYPE}"
           BUCKET_NAME="testautomationweb"
           
-          echo "📂 Target location: gs://${BUCKET_NAME}/${GCS_FOLDER}/"
+          echo "� Target location: gs://${BUCKET_NAME}/${GCS_FOLDER}/"
+          
+          # Verify we have an active authentication
+          ACTIVE_ACCOUNT=$(gcloud auth list --filter="status:ACTIVE" --format="value(account)")
+          if [ -z "$ACTIVE_ACCOUNT" ]; then
+            echo "❌ No active Google Cloud authentication found"
+            echo "   Authentication step may have failed"
+            exit 1
+          else
+            echo "✅ Using authenticated account: $ACTIVE_ACCOUNT"
+          fi
           
           # Verify bucket exists and is accessible
           echo "🪣 Verifying bucket access..."
