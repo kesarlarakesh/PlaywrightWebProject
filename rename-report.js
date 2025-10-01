@@ -11,10 +11,19 @@ function findLatestReportFolder() {
   const currentDir = process.cwd();
   const folders = fs.readdirSync(currentDir)
     .filter(name => name.startsWith('playwright-web-report-'))
-    .map(name => ({
-      name,
-      mtime: fs.statSync(path.join(currentDir, name)).mtime
-    }))
+    .map(name => {
+      try {
+        return {
+          name,
+          mtime: fs.statSync(path.join(currentDir, name)).mtime
+        };
+      } catch (error) {
+        // Handle race condition where directory becomes inaccessible
+        console.warn(`⚠️  Could not access directory ${name}: ${error.message}`);
+        return null;
+      }
+    })
+    .filter(folder => folder !== null)  // Remove failed stat attempts
     .sort((a, b) => b.mtime - a.mtime);
   
   return folders.length > 0 ? folders[0].name : null;

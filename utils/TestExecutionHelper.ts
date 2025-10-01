@@ -1,6 +1,13 @@
-import { TestInfo } from '@playwright/test';
+import { TestInfo, Page } from '@playwright/test';
 import { ConfigManager } from './ConfigManager';
 import { ReportingUtils } from './ReportingUtils';
+
+// Extend TestInfo interface to include testData property
+declare module '@playwright/test' {
+  interface TestInfo {
+    testData?: Record<string, any>;
+  }
+}
 
 /**
  * Comprehensive helper class to handle test execution lifecycle and reporting
@@ -14,13 +21,13 @@ export class TestExecutionHelper {
   /**
    * Initialize test with metadata and data attachment (Hook: beforeEach)
    */
-  static async initializeTest(testInfo: TestInfo, testData: any): Promise<void> {
+  static async initializeTest(testInfo: TestInfo, testData: Record<string, any>): Promise<void> {
     // Set up global test state
     this.testStartTime = Date.now();
     this.testStatus = this.createTestStatus();
     
-    // Store test data for later use
-    (testInfo as any).testData = testData;
+    // Store test data for later use (now type-safe)
+    testInfo.testData = testData;
     
     // Attach test metadata with timestamp information
     await ReportingUtils.attachTestMetadata(testInfo);
@@ -36,8 +43,8 @@ export class TestExecutionHelper {
     testInfo: TestInfo, 
     testStatus: { success: boolean; failureReason: string; currentStep: string } | null = null, 
     startTime: number | null = null,
-    testData: any,
-    page: any
+    testData: Record<string, any>,
+    page: Page | null
   ): Promise<void> {
     const config = ConfigManager.getInstance();
     
@@ -138,7 +145,13 @@ export class TestExecutionHelper {
     } else {
       // Using provided testStatus: executeStep(stepName, testStatus, stepFunction)
       targetTestStatus = testStatusOrFunction;
-      targetStepFunction = stepFunction!;
+      
+      // Validate that stepFunction is provided when using the three-parameter signature
+      if (!stepFunction) {
+        throw new Error(`stepFunction is required when providing testStatus. Usage: executeStep(stepName, testStatus, stepFunction)`);
+      }
+      
+      targetStepFunction = stepFunction;
     }
     
     targetTestStatus.currentStep = stepName;
@@ -152,9 +165,56 @@ export class TestExecutionHelper {
   }
 
   /**
+   * Execute optional/non-critical steps that should not fail the test
+   * Logs warnings on failure but continues test execution
+   */
+  static async executeOptionalStep<T>(
+    stepName: string,
+    testStatusOrFunction: { success: boolean; failureReason: string; currentStep: string } | (() => Promise<T>),
+    stepFunction?: () => Promise<T>,
+    defaultValue?: T
+  ): Promise<T | undefined> {
+    // Handle both signatures similar to executeStep
+    let targetTestStatus: { success: boolean; failureReason: string; currentStep: string };
+    let targetStepFunction: () => Promise<T>;
+    
+    if (typeof testStatusOrFunction === 'function') {
+      // Using global state: executeOptionalStep(stepName, stepFunction)
+      targetTestStatus = this.testStatus;
+      targetStepFunction = testStatusOrFunction;
+    } else {
+      // Using provided testStatus: executeOptionalStep(stepName, testStatus, stepFunction)
+      targetTestStatus = testStatusOrFunction;
+      
+      // Validate that stepFunction is provided when using the three-parameter signature
+      if (!stepFunction) {
+        throw new Error(`stepFunction is required when providing testStatus. Usage: executeOptionalStep(stepName, testStatus, stepFunction)`);
+      }
+      
+      targetStepFunction = stepFunction;
+    }
+    
+    targetTestStatus.currentStep = stepName;
+    try {
+      console.log(`🔄 Attempting optional step: ${stepName}`);
+      const result = await targetStepFunction();
+      console.log(`✅ Optional step completed successfully: ${stepName}`);
+      return result;
+    } catch (error: any) {
+      // For optional steps, log warning but don't fail the test
+      const warningMessage = `⚠️  Optional step '${stepName}' failed: ${error.message}`;
+      console.warn(warningMessage);
+      
+      // Don't update test status failure reason for optional steps
+      // but update current step for tracking
+      return defaultValue;
+    }
+  }
+
+  /**
    * Take screenshot on failure with standardized naming
    */
-  static async takeFailureScreenshot(testInfo: TestInfo, page: any): Promise<void> {
+  static async takeFailureScreenshot(testInfo: TestInfo, page: Page | null): Promise<void> {
     try {
       // Check if page exists and is valid
       if (this.isPageValid(page)) {
@@ -185,30 +245,30 @@ export class TestExecutionHelper {
   /**
    * Global hook: Initialize test with automatic reporting setup (beforeEach equivalent)
    */
-  static async beforeEach(testInfo: TestInfo, testData: any = {}): Promise<void> {
+  static async beforeEach(testInfo: TestInfo, testData: Record<string, any> = {}): Promise<void> {
     await this.initializeTest(testInfo, testData);
   }
 
   /**
    * Global hook: Finalize test with automatic reporting (afterEach equivalent)
    */
-  static async afterEach(testInfo: TestInfo, page: any, testData: any = {}): Promise<void> {
+  static async afterEach(testInfo: TestInfo, page: Page | null, testData: Record<string, any> = {}): Promise<void> {
     await this.finalizeTest(testInfo, null, null, testData, page);
   }
 
   /**
    * Global hook: Handle test failure with screenshot (onFailure equivalent)
    */
-  static async onFailure(testInfo: TestInfo, page: any): Promise<void> {
+  static async onFailure(testInfo: TestInfo, page: Page | null): Promise<void> {
     await this.takeFailureScreenshot(testInfo, page);
   }
 
   /**
    * Check if page is valid and ready for operations
    */
-  private static isPageValid(page: any): boolean {
+  private static isPageValid(page: Page | null): page is Page {
     try {
-      return page && typeof page.isClosed === 'function' && !page.isClosed();
+      return page !== null && typeof page.isClosed === 'function' && !page.isClosed();
     } catch (error) {
       return false;
     }

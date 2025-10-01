@@ -83,11 +83,19 @@ export class ReporterManager {
     try {
       const currentReportFolder = this.generateCurrentReportFolder();
       const reportDirs = fs.readdirSync('.')
-        .filter(dir => 
-          dir.startsWith('playwright-web-report-') && 
-          fs.statSync(dir).isDirectory() &&
-          dir !== currentReportFolder  // Don't delete current run's folder
-        );
+        .filter(dir => {
+          if (!dir.startsWith('playwright-web-report-') || dir === currentReportFolder) {
+            return false;
+          }
+          try {
+            return fs.statSync(dir).isDirectory();
+          } catch (error) {
+            // Handle race condition where directory becomes inaccessible
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            console.warn(`⚠️  Could not access directory ${dir}: ${errorMessage}`);
+            return false;
+          }
+        });
       
       reportDirs.forEach(dir => {
         try {

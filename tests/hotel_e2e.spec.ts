@@ -52,16 +52,11 @@ test.describe('Hotel Booking Flow', () => {
           });
         });
 
-        // Handle initial popups
+        // Handle initial popups (non-critical)
         await test.step('Handle popups', async () => {
-          await TestExecutionHelper.executeStep('Handle popups', async () => {
+          await TestExecutionHelper.executeOptionalStep('Handle initial popups', async () => {
             console.log('Handling initial popups...');
-            try {
-              await homePage.handlePopups();
-            } catch (error: any) {
-              // Non-critical step, log but continue
-              console.warn(`Warning: Error handling popups: ${error.message}`);
-            }
+            await homePage.handlePopups();
           });
         });
 
