@@ -121,6 +121,34 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
       
+      - name: Debug GCS Authentication
+        if: always()
+        run: |
+          echo "🔍 Debugging Google Cloud Authentication..."
+          
+          # Check if credentials are loaded
+          if [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+            echo "✅ GOOGLE_APPLICATION_CREDENTIALS is set"
+          else
+            echo "❌ GOOGLE_APPLICATION_CREDENTIALS is not set"
+          fi
+          
+          # Test authentication
+          echo "🔐 Testing authentication..."
+          gcloud auth list --format="table(account,status)" || echo "❌ Auth list failed"
+          
+          # Check project configuration
+          echo "📋 Checking project configuration..."
+          gcloud config get-value project || echo "❌ No project configured"
+          
+          # Test bucket access
+          echo "🪣 Testing bucket access..."
+          gsutil ls gs://testautomationweb || echo "❌ Bucket access failed - this is the main issue"
+          
+          # Test basic gsutil functionality
+          echo "🛠️ Testing gsutil configuration..."
+          gsutil version || echo "❌ gsutil version failed"
+      
       - name: Upload Playwright Reports to Google Cloud Storage
         if: always()
         id: upload-reports
@@ -132,38 +160,96 @@ jobs:
           GCS_FOLDER="playwright-reports/${ENV_TYPE}"
           BUCKET_NAME="testautomationweb"
           
-          echo "Uploading reports to gs://${BUCKET_NAME}/${GCS_FOLDER}/"
+          echo "📤 Starting Playwright Reports upload to Google Cloud Storage..."
           
-          # Upload report folders
+          # Verify authentication before attempting upload
+          echo "🔐 Verifying authentication status..."
+          if ! gcloud auth list --filter="status:ACTIVE" --format="value(account)" | grep -q "@"; then
+            echo "❌ No active authentication found. Upload will fail."
+            echo "   Please check the GCP_SERVICE_ACCOUNT_KEY secret configuration."
+            exit 1
+          else
+            echo "✅ Authentication verified"
+            gcloud auth list --filter="status:ACTIVE" --format="table(account,status)"
+          fi
+          
+          # Get environment type for folder organization
+          ENV_TYPE="${{ github.event.inputs.test_environment || 'lambdatest' }}"
+          
+          # Create folder name in GCS bucket
+          GCS_FOLDER="playwright-reports/${ENV_TYPE}"
+          BUCKET_NAME="testautomationweb"
+          
+          echo "📂 Target location: gs://${BUCKET_NAME}/${GCS_FOLDER}/"
+          
+          # Verify bucket exists and is accessible
+          echo "🪣 Verifying bucket access..."
+          if ! gsutil ls gs://${BUCKET_NAME}/ > /dev/null 2>&1; then
+            echo "❌ Cannot access bucket gs://${BUCKET_NAME}/"
+            echo "   Please verify:"
+            echo "   1. Bucket exists"
+            echo "   2. Service account has storage.objects.list permission"
+            echo "   3. Service account has storage.buckets.get permission"
+            exit 1
+          else
+            echo "✅ Bucket access verified"
+          fi
+          
+          # Upload report folders with error handling
+          UPLOAD_SUCCESS=false
           if ls playwright-web-report-* 1> /dev/null 2>&1; then
             for report_dir in playwright-web-report-*; do
               if [ -d "$report_dir" ]; then
-                gsutil -m cp -r "$report_dir" gs://${BUCKET_NAME}/${GCS_FOLDER}/
-                echo "Uploaded $report_dir folder"
+                echo "📤 Uploading $report_dir..."
+                if gsutil -m cp -r "$report_dir" gs://${BUCKET_NAME}/${GCS_FOLDER}/; then
+                  echo "✅ Successfully uploaded $report_dir"
+                  UPLOAD_SUCCESS=true
+                else
+                  echo "❌ Failed to upload $report_dir"
+                  echo "   Error details above. Common causes:"
+                  echo "   - Missing storage.objects.create permission"
+                  echo "   - Invalid service account configuration"
+                  echo "   - Network connectivity issues"
+                fi
               fi
             done
+          else
+            echo "⚠️  No playwright-web-report-* folders found to upload"
           fi
           
-          # Make the uploaded content publicly accessible
-          echo "Setting public access for the uploaded reports..."
-          gsutil -m acl ch -r -u AllUsers:R gs://${BUCKET_NAME}/${GCS_FOLDER}/
-         
-          # Check for custom named HTML report
-          CUSTOM_REPORT_URL=""
-          if ls playwright-web-report-*/PlaywrightAutomationTestResult.html 1> /dev/null 2>&1; then
-            CUSTOM_REPORT_DIR=$(ls -d playwright-web-report-* | head -n 1)
-            CUSTOM_REPORT_URL="https://storage.googleapis.com/${BUCKET_NAME}/${GCS_FOLDER}/${CUSTOM_REPORT_DIR}/PlaywrightAutomationTestResult.html"
-            echo "Custom report URL: $CUSTOM_REPORT_URL"
-          fi
-          
-          # Set outputs for use in notification
-          echo "gcs_folder=${GCS_FOLDER}" >> $GITHUB_OUTPUT
-          echo "custom_report_url=${CUSTOM_REPORT_URL}" >> $GITHUB_OUTPUT
-          echo "bucket_url=https://console.cloud.google.com/storage/browser/${BUCKET_NAME}/${GCS_FOLDER}" >> $GITHUB_OUTPUT
-          
-          echo "Reports uploaded successfully!"
-          if [ -n "$CUSTOM_REPORT_URL" ]; then
-            echo "Custom Report URL: $CUSTOM_REPORT_URL"
+          # Proceed with public access only if upload was successful
+          if [ "$UPLOAD_SUCCESS" = true ]; then
+            echo "🔒 Setting public access for the uploaded reports..."
+            if gsutil -m acl ch -r -u AllUsers:R gs://${BUCKET_NAME}/${GCS_FOLDER}/; then
+              echo "✅ Public access configured successfully"
+            else
+              echo "⚠️  Failed to set public access (reports uploaded but not public)"
+            fi
+            
+            # Check for custom named HTML report
+            CUSTOM_REPORT_URL=""
+            if ls playwright-web-report-*/PlaywrightAutomationTestResult.html 1> /dev/null 2>&1; then
+              CUSTOM_REPORT_DIR=$(ls -d playwright-web-report-* | head -n 1)
+              CUSTOM_REPORT_URL="https://storage.googleapis.com/${BUCKET_NAME}/${GCS_FOLDER}/${CUSTOM_REPORT_DIR}/PlaywrightAutomationTestResult.html"
+              echo "📋 Custom report URL: $CUSTOM_REPORT_URL"
+            fi
+            
+            # Set outputs for use in notification
+            echo "gcs_folder=${GCS_FOLDER}" >> $GITHUB_OUTPUT
+            echo "custom_report_url=${CUSTOM_REPORT_URL}" >> $GITHUB_OUTPUT
+            echo "bucket_url=https://console.cloud.google.com/storage/browser/${BUCKET_NAME}/${GCS_FOLDER}" >> $GITHUB_OUTPUT
+            
+            echo "🎉 Reports uploaded successfully!"
+            if [ -n "$CUSTOM_REPORT_URL" ]; then
+              echo "📊 Custom Report URL: $CUSTOM_REPORT_URL"
+            fi
+          else
+            echo "❌ Upload failed. Skipping public access configuration."
+            echo "   Please check the authentication and permissions."
+            # Set empty outputs so the workflow doesn't break
+            echo "gcs_folder=" >> $GITHUB_OUTPUT
+            echo "custom_report_url=" >> $GITHUB_OUTPUT
+            echo "bucket_url=" >> $GITHUB_OUTPUT
           fi
       
       - name: Upload test results
