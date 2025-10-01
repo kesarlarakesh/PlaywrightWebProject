@@ -15,7 +15,7 @@ on:
       test_environment:
         description: 'Test environment to run'
         required: true
-        default: 'lambdatest'
+        default: 'local'
         type: choice
         options:
           - local
