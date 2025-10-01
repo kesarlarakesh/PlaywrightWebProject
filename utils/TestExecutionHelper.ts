@@ -58,6 +58,11 @@ export class TestExecutionHelper {
       finalTestStatus.currentStep = 'Test completed successfully';
     }
     
+    // Mark LambdaTest status if this is a LambdaTest run
+    if (page && this.isLambdaTestRun()) {
+      await this.markLambdaTestStatus(page, finalTestStatus.success);
+    }
+    
     // Calculate test duration
     const endTime = Date.now();
     const testDuration = endTime - finalStartTime;
@@ -253,6 +258,11 @@ export class TestExecutionHelper {
    * Global hook: Finalize test with automatic reporting (afterEach equivalent)
    */
   static async afterEach(testInfo: TestInfo, page: Page | null, testData: Record<string, any> = {}): Promise<void> {
+    // Mark LambdaTest status before finalizing test
+    if (page && this.isLambdaTestRun()) {
+      await this.markLambdaTestStatus(page, this.testStatus.success);
+    }
+    
     await this.finalizeTest(testInfo, null, null, testData, page);
   }
 
@@ -260,7 +270,55 @@ export class TestExecutionHelper {
    * Global hook: Handle test failure with screenshot (onFailure equivalent)
    */
   static async onFailure(testInfo: TestInfo, page: Page | null): Promise<void> {
+    // Mark test as failed in LambdaTest before taking screenshot
+    if (page && this.isLambdaTestRun()) {
+      await this.markLambdaTestStatus(page, false);
+    }
+    
     await this.takeFailureScreenshot(testInfo, page);
+  }
+
+  /**
+   * Check if current test run is on LambdaTest
+   */
+  private static isLambdaTestRun(): boolean {
+    return process.env.USE_LAMBDATEST === 'true';
+  }
+
+  /**
+   * Mark test status in LambdaTest using JavaScript executor
+   */
+  private static async markLambdaTestStatus(page: Page, passed: boolean): Promise<void> {
+    try {
+      if (this.isPageValid(page)) {
+        const status = passed ? 'passed' : 'failed';
+        await page.evaluate((status) => {
+          (window as any).lambda = (window as any).lambda || {};
+          (window as any).lambda.status = status;
+        }, status);
+        
+        // Execute the LambdaTest status command
+        await page.evaluate((status) => {
+          if (typeof (window as any).lambda !== 'undefined') {
+            try {
+              // Use LambdaTest's JavaScript executor to mark status
+              const script = `lambda-status=${status}`;
+              if ((window as any).executeScript) {
+                (window as any).executeScript(script);
+              } else if ((window as any).lambdatest) {
+                (window as any).lambdatest.executeScript(script);
+              }
+            } catch (error) {
+              console.log(`LambdaTest status marking failed: ${error}`);
+            }
+          }
+        }, status);
+        
+        console.log(`✅ LambdaTest status marked as: ${status.toUpperCase()}`);
+      }
+    } catch (error: any) {
+      console.warn(`Warning: Could not mark LambdaTest status: ${error.message}`);
+    }
   }
 
   /**
@@ -272,5 +330,32 @@ export class TestExecutionHelper {
     } catch (error) {
       return false;
     }
+  }
+
+  // ========== LAMBDATEST INTEGRATION ==========
+
+  /**
+   * Explicitly mark test status in LambdaTest (can be called during test execution)
+   */
+  static async markTestStatus(page: Page, passed: boolean): Promise<void> {
+    if (this.isLambdaTestRun()) {
+      await this.markLambdaTestStatus(page, passed);
+    } else {
+      console.log('Not running on LambdaTest, skipping status marking');
+    }
+  }
+
+  /**
+   * Mark test as passed in LambdaTest
+   */
+  static async markTestPassed(page: Page): Promise<void> {
+    await this.markTestStatus(page, true);
+  }
+
+  /**
+   * Mark test as failed in LambdaTest
+   */
+  static async markTestFailed(page: Page): Promise<void> {
+    await this.markTestStatus(page, false);
   }
 }

@@ -283,7 +283,14 @@ test.describe('Hotel Booking Flow', () => {
           console.log('Skipping payment details as specified in configuration');
         }
 
+        // Mark test as passed in LambdaTest if all steps completed successfully
+        await TestExecutionHelper.markTestPassed(page);
+        console.log('✅ Test completed successfully - all steps passed');
+
       } catch (error: any) {
+        // Mark test as failed in LambdaTest
+        await TestExecutionHelper.markTestFailed(page);
+        
         // Handle failure with hooks
         await TestExecutionHelper.onFailure(testInfo, page);
         throw error;
