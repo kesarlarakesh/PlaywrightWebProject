@@ -118,161 +118,66 @@ jobs:
       - name: Authenticate to Google Cloud
         if: always()
         run: |
-          echo "🔐 Setting up Google Cloud Authentication..."
-          
-          # Check if secret exists
+          # Validate service account key exists
           if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" ]; then
             echo "❌ GCP_SERVICE_ACCOUNT_KEY secret is not set"
-            echo "   Please add your service account JSON to GitHub secrets"
             exit 1
           fi
           
-          # Create service account key file
+          # Setup authentication
           echo '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}' > /tmp/gcp-key.json
-          
-          # Validate JSON format
-          if ! jq empty /tmp/gcp-key.json 2>/dev/null; then
-            echo "❌ Invalid JSON format in GCP_SERVICE_ACCOUNT_KEY"
-            echo "   Please ensure the secret contains valid JSON"
-            exit 1
-          fi
-          
-          # Extract service account info for debugging
           PROJECT_ID=$(jq -r '.project_id' /tmp/gcp-key.json)
-          CLIENT_EMAIL=$(jq -r '.client_email' /tmp/gcp-key.json)
           
-          echo "✅ Service Account: $CLIENT_EMAIL"
-          echo "✅ Project ID: $PROJECT_ID"
-          
-          # Activate service account
           gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
-          
-          # Set project
           gcloud config set project $PROJECT_ID
           
-          # Verify authentication
-          echo "� Verifying authentication..."
-          gcloud auth list --format="table(account,status)"
-      
-      - name: Debug GCS Authentication
-        if: always()
-        run: |
-          echo "🔍 Testing Google Cloud Authentication..."
-          
-          # Test authentication
-          echo "🔐 Current authenticated accounts:"
-          gcloud auth list --format="table(account,status)"
-          
-          # Check project configuration
-          echo "📋 Current project:"
-          gcloud config get-value project
-          
-          # Test gsutil authentication
-          echo "🛠️ Testing gsutil configuration..."
-          gsutil version
-          
-          # Test bucket access
-          echo "🪣 Testing bucket access..."
-          if gsutil ls gs://testautomationweb; then
-            echo "✅ Bucket access successful!"
-          else
-            echo "❌ Bucket access failed"
-            echo "   This indicates either:"
-            echo "   1. Bucket doesn't exist"
-            echo "   2. Service account lacks storage.objects.list permission"
-            echo "   3. Service account lacks storage.buckets.get permission"
-          fi
+          echo "✅ Authentication complete"
       
       - name: Upload Playwright Reports to Google Cloud Storage
         if: always()
         id: upload-reports
         run: |
-          echo "📤 Starting Playwright Reports upload to Google Cloud Storage..."
-          
-          # Get environment type for folder organization
           ENV_TYPE="${{ github.event.inputs.test_environment || 'lambdatest' }}"
-          
-          # Create folder name in GCS bucket
           GCS_FOLDER="playwright-reports/${ENV_TYPE}"
           BUCKET_NAME="testautomationweb"
           
-          echo "� Target location: gs://${BUCKET_NAME}/${GCS_FOLDER}/"
-          
-          # Verify we have an active authentication
-          ACTIVE_ACCOUNT=$(gcloud auth list --filter="status:ACTIVE" --format="value(account)")
-          if [ -z "$ACTIVE_ACCOUNT" ]; then
-            echo "❌ No active Google Cloud authentication found"
-            echo "   Authentication step may have failed"
-            exit 1
-          else
-            echo "✅ Using authenticated account: $ACTIVE_ACCOUNT"
-          fi
-          
-          # Verify bucket exists and is accessible
-          echo "🪣 Verifying bucket access..."
-          if ! gsutil ls gs://${BUCKET_NAME}/ > /dev/null 2>&1; then
-            echo "❌ Cannot access bucket gs://${BUCKET_NAME}/"
-            echo "   Please verify:"
-            echo "   1. Bucket exists"
-            echo "   2. Service account has storage.objects.list permission"
-            echo "   3. Service account has storage.buckets.get permission"
-            exit 1
-          else
-            echo "✅ Bucket access verified"
-          fi
-          
-          # Upload report folders with error handling
+          # Upload report folders
           UPLOAD_SUCCESS=false
           if ls playwright-web-report-* 1> /dev/null 2>&1; then
             for report_dir in playwright-web-report-*; do
               if [ -d "$report_dir" ]; then
-                echo "📤 Uploading $report_dir..."
+                echo "Uploading $report_dir..."
                 if gsutil -m cp -r "$report_dir" gs://${BUCKET_NAME}/${GCS_FOLDER}/; then
-                  echo "✅ Successfully uploaded $report_dir"
+                  echo "✅ Uploaded $report_dir"
                   UPLOAD_SUCCESS=true
                 else
                   echo "❌ Failed to upload $report_dir"
-                  echo "   Error details above. Common causes:"
-                  echo "   - Missing storage.objects.create permission"
-                  echo "   - Invalid service account configuration"
-                  echo "   - Network connectivity issues"
                 fi
               fi
             done
           else
-            echo "⚠️  No playwright-web-report-* folders found to upload"
+            echo "No report folders found"
           fi
           
-          # Proceed with public access only if upload was successful
+          # Set public access and generate URLs
           if [ "$UPLOAD_SUCCESS" = true ]; then
-            echo "🔒 Setting public access for the uploaded reports..."
-            if gsutil -m acl ch -r -u AllUsers:R gs://${BUCKET_NAME}/${GCS_FOLDER}/; then
-              echo "✅ Public access configured successfully"
-            else
-              echo "⚠️  Failed to set public access (reports uploaded but not public)"
-            fi
+            gsutil -m acl ch -r -u AllUsers:R gs://${BUCKET_NAME}/${GCS_FOLDER}/ || echo "Warning: Failed to set public access"
             
-            # Check for custom named HTML report
+            # Generate custom report URL
             CUSTOM_REPORT_URL=""
             if ls playwright-web-report-*/PlaywrightAutomationTestResult.html 1> /dev/null 2>&1; then
               CUSTOM_REPORT_DIR=$(ls -d playwright-web-report-* | head -n 1)
               CUSTOM_REPORT_URL="https://storage.googleapis.com/${BUCKET_NAME}/${GCS_FOLDER}/${CUSTOM_REPORT_DIR}/PlaywrightAutomationTestResult.html"
-              echo "📋 Custom report URL: $CUSTOM_REPORT_URL"
             fi
             
-            # Set outputs for use in notification
+            # Set outputs
             echo "gcs_folder=${GCS_FOLDER}" >> $GITHUB_OUTPUT
             echo "custom_report_url=${CUSTOM_REPORT_URL}" >> $GITHUB_OUTPUT
             echo "bucket_url=https://console.cloud.google.com/storage/browser/${BUCKET_NAME}/${GCS_FOLDER}" >> $GITHUB_OUTPUT
             
-            echo "🎉 Reports uploaded successfully!"
-            if [ -n "$CUSTOM_REPORT_URL" ]; then
-              echo "📊 Custom Report URL: $CUSTOM_REPORT_URL"
-            fi
+            echo "🎉 Upload complete"
           else
-            echo "❌ Upload failed. Skipping public access configuration."
-            echo "   Please check the authentication and permissions."
-            # Set empty outputs so the workflow doesn't break
+            echo "❌ Upload failed"
             echo "gcs_folder=" >> $GITHUB_OUTPUT
             echo "custom_report_url=" >> $GITHUB_OUTPUT
             echo "bucket_url=" >> $GITHUB_OUTPUT
