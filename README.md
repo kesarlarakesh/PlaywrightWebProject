@@ -1,6 +1,6 @@
 # Playwright Web Testing Project
 
-Automated end-to-end tests using Playwright with Page Object Model design pattern. Features enhanced timestamped reporting system with single folder per test run and custom HTML report naming. Supports both local execution and cloud testing via LambdaTest.
+Automated end-to-end tests using Playwright with Page Object Model design pattern. Features enhanced timestamped reporting system integrated with google cloud storage bucket with custom HTML report naming. Supports both local execution and cloud testing via LambdaTest.
 
 ## Project Structure
 
