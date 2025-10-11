@@ -139,7 +139,7 @@ jobs:
         id: upload-reports
         run: |
           # Configuration
-          ENV_TYPE="${{ github.event.inputs.test_environment || 'lambdatest' }}"
+          ENV_TYPE="${{ github.event.inputs.test_environment || 'local' }}"
           GCS_FOLDER="playwright-reports/${ENV_TYPE}"
           BUCKET_NAME="testautomationweb"
           
