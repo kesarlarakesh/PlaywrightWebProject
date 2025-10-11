@@ -70,10 +70,10 @@ jobs:
       custom_report_url: ${{ steps.upload-reports.outputs.custom_report_url }}
       bucket_url: ${{ steps.upload-reports.outputs.bucket_url }}
     env:
-      USE_LAMBDATEST: ${{ (github.event.inputs.test_environment == 'lambdatest' || github.event.inputs.test_environment == 'both' || github.event.inputs.test_environment == null) && 'true' || 'false' }}
+      USE_LAMBDATEST: ${{ (github.event.inputs.test_environment == 'lambdatest' || github.event.inputs.test_environment == 'both') && 'true' || 'false' }}
       LT_USERNAME: ${{ secrets.LT_USERNAME }}
       LT_ACCESS_KEY: ${{ secrets.LT_ACCESS_KEY }}
-      TEST_MODE: ${{ github.event.inputs.test_environment || 'lambdatest' }}
+      TEST_MODE: ${{ github.event.inputs.test_environment || 'local' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -87,25 +87,25 @@ jobs:
       - name: Install dependencies
         run: npm install
       
-      # Only install browsers for local testing
+      # Install browsers for local testing (default for automatic triggers)
       - name: Install Playwright Browsers
-        if: github.event.inputs.test_environment == 'local' || github.event.inputs.test_environment == 'both'
+        if: github.event.inputs.test_environment == 'local' || github.event.inputs.test_environment == 'both' || github.event.inputs.test_environment == null
         run: npx playwright install --with-deps chromium
       
-      # Install LambdaTest Playwright for cloud testing
+      # Install LambdaTest Playwright for cloud testing (only when explicitly requested)
       - name: Install LambdaTest Playwright
-        if: github.event.inputs.test_environment == 'lambdatest' || github.event.inputs.test_environment == 'both' || github.event.inputs.test_environment == null
+        if: github.event.inputs.test_environment == 'lambdatest' || github.event.inputs.test_environment == 'both'
         run: npm install @lambdatest/playwright-driver --save-dev
       
       # Run tests
-      - name: Run Playwright tests (Local)
-        if: github.event.inputs.test_environment == 'local' || github.event.inputs.test_environment == 'both'
+      - name: Run Playwright tests (Local - Default)
+        if: github.event.inputs.test_environment == 'local' || github.event.inputs.test_environment == 'both' || github.event.inputs.test_environment == null
         env:
           USE_LAMBDATEST: false
         run: npm run test
       
       - name: Run Playwright tests (LambdaTest)
-        if: github.event.inputs.test_environment == 'lambdatest' || github.event.inputs.test_environment == 'both' || github.event.inputs.test_environment == null
+        if: github.event.inputs.test_environment == 'lambdatest' || github.event.inputs.test_environment == 'both'
         env:
           USE_LAMBDATEST: true
         run: npm run test
