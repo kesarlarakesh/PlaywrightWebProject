@@ -142,7 +142,7 @@ export class GuestDetailsPage extends BasePage {
       if (nameValue !== givenName) {
         console.warn(`Name verification failed. Expected '${givenName}' but got '${nameValue}'`);
         await this.givenNameInput.fill(givenName);
-        console.log('Attempted name entry again using fill() method');
+        console.log('Attempted name entry again using `fill()` method');
       }
       
       // Fill Family Name/Surname
