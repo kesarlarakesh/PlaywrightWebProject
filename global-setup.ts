@@ -3,6 +3,7 @@
  */
 import path from 'path';
 import { FullConfig } from '@playwright/test';
+import { ReporterManager } from './utils/reporter/ReporterManager';
 
 /**
  * Global setup function
@@ -10,6 +11,9 @@ import { FullConfig } from '@playwright/test';
 async function globalSetup(config: FullConfig) {
   console.log(`Running tests with environment: ${process.env.TEST_ENV || 'prod'}`);
   console.log(`Running tests in headless mode: ${process.env.HEADLESS !== 'false'}`);
+  
+  // Initialize consistent timestamp for this test run
+  ReporterManager.getRunTimestamp();
   
   // Check if we're using LambdaTest
   const useLambdaTest = process.env.USE_LAMBDATEST === 'true';
