@@ -2,6 +2,7 @@ import { TestInfo } from '@playwright/test';
 import * as path from 'path';
 import * as fs from 'fs';
 import { ReporterManager } from './reporter/ReporterManager';
+import { LAMBDATEST_ENV_VARS, PLATFORM_IDENTIFIERS } from './constants/LambdaTestConstants';
 
 /**
  * Enhanced utility class for reporting functionalities with timestamped support
@@ -42,7 +43,7 @@ export class ReportingUtils {
       testFile: testInfo.file,
       startTime: new Date().toISOString(),
       environment: process.env.TEST_ENV || 'prod',
-      platform: process.env.USE_LAMBDATEST === 'true' ? 'LambdaTest' : 'Local',
+      platform: process.env[LAMBDATEST_ENV_VARS.USE_LAMBDATEST] === 'true' ? PLATFORM_IDENTIFIERS.LAMBDATEST_DISPLAY : PLATFORM_IDENTIFIERS.LOCAL_DISPLAY,
       browser: testInfo.project.name,
       timestamp: ReporterManager.generateTimestamp(),
       reportPaths: ReporterManager.getCurrentReportPaths()
