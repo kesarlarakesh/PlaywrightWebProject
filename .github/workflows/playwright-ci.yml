@@ -137,51 +137,55 @@ jobs:
         if: always()
         id: upload-reports
         run: |
+          # Configuration
           ENV_TYPE="${{ github.event.inputs.test_environment || 'lambdatest' }}"
           GCS_FOLDER="playwright-reports/${ENV_TYPE}"
           BUCKET_NAME="testautomationweb"
           
-          # Upload report folders
-          UPLOAD_SUCCESS=false
-          if ls playwright-web-report-* 1> /dev/null 2>&1; then
-            for report_dir in playwright-web-report-*; do
-              if [ -d "$report_dir" ]; then
-                echo "Uploading $report_dir..."
-                if gsutil -m cp -r "$report_dir" gs://${BUCKET_NAME}/${GCS_FOLDER}/; then
-                  echo "✅ Uploaded $report_dir"
-                  UPLOAD_SUCCESS=true
-                else
-                  echo "❌ Failed to upload $report_dir"
-                fi
-              fi
-            done
-          else
-            echo "No report folders found"
-          fi
+          # Helper function to find report directories
+          find_report_dirs() {
+            find . -maxdepth 1 -type d -name "playwright-web-report-*" 2>/dev/null || true
+          }
           
-          # Set public access and generate URLs
-          if [ "$UPLOAD_SUCCESS" = true ]; then
-            gsutil -m acl ch -r -u AllUsers:R gs://${BUCKET_NAME}/${GCS_FOLDER}/ || echo "Warning: Failed to set public access"
+          # Helper function to generate URLs
+          generate_report_urls() {
+            local first_dir=$(find . -maxdepth 1 -type d -name "playwright-web-report-*" -print -quit 2>/dev/null | sed 's|^\./||')
+            local custom_url=""
             
-            # Generate custom report URL
-            CUSTOM_REPORT_URL=""
-            if ls playwright-web-report-*/PlaywrightAutomationTestResult.html 1> /dev/null 2>&1; then
-              CUSTOM_REPORT_DIR=$(ls -d playwright-web-report-* | head -n 1)
-              CUSTOM_REPORT_URL="https://storage.googleapis.com/${BUCKET_NAME}/${GCS_FOLDER}/${CUSTOM_REPORT_DIR}/PlaywrightAutomationTestResult.html"
+            if [ -n "$first_dir" ] && [ -f "$first_dir/PlaywrightAutomationTestResult.html" ]; then
+              custom_url="https://storage.googleapis.com/${BUCKET_NAME}/${GCS_FOLDER}/${first_dir}/PlaywrightAutomationTestResult.html"
             fi
             
-            # Set outputs
             echo "gcs_folder=${GCS_FOLDER}" >> $GITHUB_OUTPUT
-            echo "custom_report_url=${CUSTOM_REPORT_URL}" >> $GITHUB_OUTPUT
+            echo "custom_report_url=${custom_url}" >> $GITHUB_OUTPUT
             echo "bucket_url=https://console.cloud.google.com/storage/browser/${BUCKET_NAME}/${GCS_FOLDER}" >> $GITHUB_OUTPUT
             
-            echo "🎉 Upload complete"
-          else
-            echo "❌ Upload failed"
-            echo "gcs_folder=" >> $GITHUB_OUTPUT
-            echo "custom_report_url=" >> $GITHUB_OUTPUT
-            echo "bucket_url=" >> $GITHUB_OUTPUT
+            [ -n "$custom_url" ] && echo "📄 Custom report URL: $custom_url"
+          }
+          
+          # Main upload logic
+          REPORT_DIRS=$(find_report_dirs)
+          
+          if [ -z "$REPORT_DIRS" ]; then
+            echo "❌ No report directories found"
+            generate_report_urls  # Set empty outputs
+            exit 0
           fi
+          
+          echo "📁 Found reports: $(echo "$REPORT_DIRS" | wc -l) directories"
+          
+          # Upload all report directories
+          echo "$REPORT_DIRS" | while IFS= read -r report_dir; do
+            echo "⬆️  Uploading $(basename "$report_dir")..."
+            gsutil -m cp -r "$report_dir" gs://${BUCKET_NAME}/${GCS_FOLDER}/
+          done
+          
+          # Set public access
+          gsutil -m acl ch -r -u AllUsers:R gs://${BUCKET_NAME}/${GCS_FOLDER}/ || echo "⚠️  Failed to set public access"
+          
+          # Generate and set outputs
+          generate_report_urls
+          echo "✅ Upload completed successfully"
       
       - name: Upload test results
         if: always()

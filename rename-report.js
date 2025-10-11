@@ -23,7 +23,7 @@ function findLatestReportFolder() {
         return null;
       }
     })
-    .filter(folder => folder !== null)  // Remove failed stat attempts
+    .filter(Boolean)  // Remove failed stat attempts
     .sort((a, b) => b.mtime - a.mtime);
   
   return folders.length > 0 ? folders[0].name : null;

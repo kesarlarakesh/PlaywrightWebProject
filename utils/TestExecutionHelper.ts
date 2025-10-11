@@ -1,6 +1,14 @@
 import { TestInfo, Page } from '@playwright/test';
 import { ConfigManager } from './ConfigManager';
 import { ReportingUtils } from './ReportingUtils';
+import {
+  LAMBDATEST_ENV_VARS,
+  LAMBDATEST_STATUS,
+  LAMBDATEST_COMMANDS,
+  PLATFORM_IDENTIFIERS,
+  type LambdaTestStatus
+} from './constants/LambdaTestConstants';
+import { ERROR_MESSAGES, DYNAMIC_ERROR_GENERATORS, ERROR_UTILS } from './constants/ErrorMessageConstants';
 
 // Extend TestInfo interface to include testData property
 declare module '@playwright/test' {
@@ -78,7 +86,7 @@ export class TestExecutionHelper {
       currentStep: finalTestStatus.currentStep,
       timestamp: new Date().toISOString(),
       environment: config.getEnvironment(),
-      platform: process.env.USE_LAMBDATEST === 'true' ? 'LambdaTest' : 'Local',
+      platform: process.env[LAMBDATEST_ENV_VARS.USE_LAMBDATEST] === 'true' ? PLATFORM_IDENTIFIERS.LAMBDATEST_DISPLAY : PLATFORM_IDENTIFIERS.LOCAL_DISPLAY,
       browser: testInfo.project.name,
       testData: testData
     };
@@ -103,7 +111,7 @@ export class TestExecutionHelper {
           console.log('Page is closed, skipping success screenshot');
         }
       } catch (screenshotError: any) {
-        console.warn(`Warning: Could not take success screenshot: ${screenshotError.message}`);
+        console.warn(ERROR_UTILS.formatWarningMessage('Could not take success screenshot', screenshotError));
         // Don't throw error for screenshot failures in finalization
       }
     }
@@ -139,21 +147,21 @@ export class TestExecutionHelper {
     testStatusOrFunction: { success: boolean; failureReason: string; currentStep: string } | (() => Promise<T>),
     stepFunction?: () => Promise<T>
   ): Promise<T> {
-    // Handle both signatures: (stepName, testStatus, stepFunction) and (stepName, stepFunction)
+    // Handle both signatures: `executeStep(stepName, testStatus, stepFunction)` and `executeStep(stepName, stepFunction)`
     let targetTestStatus: { success: boolean; failureReason: string; currentStep: string };
     let targetStepFunction: () => Promise<T>;
     
     if (typeof testStatusOrFunction === 'function') {
-      // Using global state: executeStep(stepName, stepFunction)
+      // Using global state: `executeStep(stepName, stepFunction)`
       targetTestStatus = this.testStatus;
       targetStepFunction = testStatusOrFunction;
     } else {
-      // Using provided testStatus: executeStep(stepName, testStatus, stepFunction)
+      // Using provided testStatus: `executeStep(stepName, testStatus, stepFunction)`
       targetTestStatus = testStatusOrFunction;
       
       // Validate that stepFunction is provided when using the three-parameter signature
       if (!stepFunction) {
-        throw new Error(`stepFunction is required when providing testStatus. Usage: executeStep(stepName, testStatus, stepFunction)`);
+        throw new Error(DYNAMIC_ERROR_GENERATORS.stepFunctionRequired(TestExecutionHelper.executeStep));
       }
       
       targetStepFunction = stepFunction;
@@ -163,7 +171,8 @@ export class TestExecutionHelper {
     try {
       return await targetStepFunction();
     } catch (error: any) {
-      targetTestStatus.failureReason = `Failed at step '${stepName}': ${error.message}`;
+      const errorMessage = ERROR_UTILS.extractErrorMessage(error);
+      targetTestStatus.failureReason = `Failed at step '${stepName}': ${errorMessage}`;
       console.error(targetTestStatus.failureReason);
       throw error;
     }
@@ -179,21 +188,21 @@ export class TestExecutionHelper {
     stepFunction?: () => Promise<T>,
     defaultValue?: T
   ): Promise<T | undefined> {
-    // Handle both signatures similar to executeStep
+    // Handle both signatures similar to `executeStep()`
     let targetTestStatus: { success: boolean; failureReason: string; currentStep: string };
     let targetStepFunction: () => Promise<T>;
     
     if (typeof testStatusOrFunction === 'function') {
-      // Using global state: executeOptionalStep(stepName, stepFunction)
+      // Using global state: `executeOptionalStep(stepName, stepFunction)`
       targetTestStatus = this.testStatus;
       targetStepFunction = testStatusOrFunction;
     } else {
-      // Using provided testStatus: executeOptionalStep(stepName, testStatus, stepFunction)
+      // Using provided testStatus: `executeOptionalStep(stepName, testStatus, stepFunction)`
       targetTestStatus = testStatusOrFunction;
       
       // Validate that stepFunction is provided when using the three-parameter signature
       if (!stepFunction) {
-        throw new Error(`stepFunction is required when providing testStatus. Usage: executeOptionalStep(stepName, testStatus, stepFunction)`);
+        throw new Error(DYNAMIC_ERROR_GENERATORS.stepFunctionRequired(TestExecutionHelper.executeOptionalStep));
       }
       
       targetStepFunction = stepFunction;
@@ -207,7 +216,8 @@ export class TestExecutionHelper {
       return result;
     } catch (error: any) {
       // For optional steps, log warning but don't fail the test
-      const warningMessage = `⚠️  Optional step '${stepName}' failed: ${error.message}`;
+      const errorMessage = ERROR_UTILS.extractErrorMessage(error);
+      const warningMessage = `⚠️  Optional step '${stepName}' failed: ${errorMessage}`;
       console.warn(warningMessage);
       
       // Don't update test status failure reason for optional steps
@@ -236,10 +246,11 @@ export class TestExecutionHelper {
         });
       }
     } catch (screenshotError: any) {
-      console.warn(`Warning: Could not take failure screenshot: ${screenshotError.message}`);
+      const errorMessage = ERROR_UTILS.extractErrorMessage(screenshotError);
+      console.warn(`Warning: Could not take failure screenshot: ${errorMessage}`);
       // Attach error details instead of screenshot
       await testInfo.attach('screenshot-error', {
-        body: `Screenshot capture failed: ${screenshotError.message}`,
+        body: `Screenshot capture failed: ${errorMessage}`,
         contentType: 'text/plain'
       });
     }
@@ -282,7 +293,7 @@ export class TestExecutionHelper {
    * Check if current test run is on LambdaTest
    */
   private static isLambdaTestRun(): boolean {
-    return process.env.USE_LAMBDATEST === 'true';
+    return process.env[LAMBDATEST_ENV_VARS.USE_LAMBDATEST] === 'true';
   }
 
   /**
@@ -291,22 +302,30 @@ export class TestExecutionHelper {
   private static async markLambdaTestStatus(page: Page, passed: boolean): Promise<void> {
     try {
       if (this.isPageValid(page)) {
-        const status = passed ? 'passed' : 'failed';
-        await page.evaluate((status) => {
-          (window as any).lambda = (window as any).lambda || {};
-          (window as any).lambda.status = status;
+        const status: LambdaTestStatus = passed ? LAMBDATEST_STATUS.PASSED : LAMBDATEST_STATUS.FAILED;
+        
+        // Set the lambda object status
+        await page.evaluate((status: string) => {
+          const lambdaObj = LAMBDATEST_COMMANDS.LAMBDA_OBJECT;
+          (window as any)[lambdaObj] = (window as any)[lambdaObj] || {};
+          (window as any)[lambdaObj].status = status;
         }, status);
         
         // Execute the LambdaTest status command
-        await page.evaluate((status) => {
-          if (typeof (window as any).lambda !== 'undefined') {
+        await page.evaluate((statusValue: string) => {
+          const lambdaObj = 'lambda';
+          const statusPrefix = 'lambda-status=';
+          const executeScriptFunc = 'executeScript';
+          const lambdatestFunc = 'lambdatest';
+          
+          if (typeof (window as any)[lambdaObj] !== 'undefined') {
             try {
               // Use LambdaTest's JavaScript executor to mark status
-              const script = `lambda-status=${status}`;
-              if ((window as any).executeScript) {
-                (window as any).executeScript(script);
-              } else if ((window as any).lambdatest) {
-                (window as any).lambdatest.executeScript(script);
+              const script = `${statusPrefix}${statusValue}`;
+              if ((window as any)[executeScriptFunc]) {
+                (window as any)[executeScriptFunc](script);
+              } else if ((window as any)[lambdatestFunc]) {
+                (window as any)[lambdatestFunc][executeScriptFunc](script);
               }
             } catch (error) {
               console.log(`LambdaTest status marking failed: ${error}`);
@@ -317,7 +336,7 @@ export class TestExecutionHelper {
         console.log(`✅ LambdaTest status marked as: ${status.toUpperCase()}`);
       }
     } catch (error: any) {
-      console.warn(`Warning: Could not mark LambdaTest status: ${error.message}`);
+      console.warn(ERROR_UTILS.formatWarningMessage('Could not mark LambdaTest status', error));
     }
   }
 

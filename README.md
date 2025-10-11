@@ -29,6 +29,9 @@ PlaywrightWebProject/
 │   ├── TestExecutionHelper.ts # Test lifecycle management
 │   ├── ReportingAdapter.ts # Adapter for reporting systems
 │   ├── ReportingUtils.ts   # Basic reporting utilities
+│   ├── constants/          # Project constants and configuration
+│   │   ├── LambdaTestConstants.ts # LambdaTest-specific constants
+│   │   └── index.ts        # Constants exports
 │   └── reporter/           # Enhanced reporting system
 │       └── ReporterManager.ts # Timestamped report management
 │
@@ -107,6 +110,7 @@ run-tests-headed.bat
 
 ## Environment Configuration
 
+### 🌍 Test Environments
 Supports multiple environments through `config/config.json`:
 - **dev** - Development environment
 - **staging** - QA/Staging environment  
