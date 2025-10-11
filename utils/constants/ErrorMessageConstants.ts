@@ -5,6 +5,15 @@
  * Uses dynamic method names to ensure accuracy and reduce duplication
  */
 
+/**
+ * Type for functions that have a name property
+ * This allows us to extract the function name for error messages
+ * Uses a more flexible approach to accommodate any function signature
+ */
+type NamedFunction = {
+  readonly name: string;
+} & ((...args: any[]) => any);
+
 export const ERROR_MESSAGES = {
   // TestExecutionHelper errors - Dynamic method name support
   STEP_FUNCTION_REQUIRED: (methodName: string) => 
@@ -28,7 +37,7 @@ export const DYNAMIC_ERROR_GENERATORS = {
    * @param methodFunction - The actual function reference
    * @returns Formatted error message with correct method name
    */
-  stepFunctionRequired: (methodFunction: Function) => 
+  stepFunctionRequired: (methodFunction: NamedFunction): string => 
     `stepFunction is required when providing testStatus. Usage: \`${methodFunction.name}(stepName, testStatus, stepFunction)\``,
   
   /**
@@ -37,7 +46,7 @@ export const DYNAMIC_ERROR_GENERATORS = {
    * @param signature - Method signature parameters
    * @returns Formatted error message
    */
-  methodUsage: (methodFunction: Function, signature: string) =>
+  methodUsage: (methodFunction: NamedFunction, signature: string): string =>
     `Invalid usage. Expected: \`${methodFunction.name}(${signature})\``,
   
   /**
@@ -47,7 +56,7 @@ export const DYNAMIC_ERROR_GENERATORS = {
    * @param expectedType - Expected parameter type
    * @returns Formatted error message
    */
-  parameterValidation: (methodFunction: Function, parameterName: string, expectedType: string) =>
+  parameterValidation: (methodFunction: NamedFunction, parameterName: string, expectedType: string): string =>
     `Invalid parameter '${parameterName}' in \`${methodFunction.name}()\`. Expected: ${expectedType}`,
 } as const;
 
