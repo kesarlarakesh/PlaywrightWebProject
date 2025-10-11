@@ -74,6 +74,7 @@ jobs:
       LT_USERNAME: ${{ secrets.LT_USERNAME }}
       LT_ACCESS_KEY: ${{ secrets.LT_ACCESS_KEY }}
       TEST_MODE: ${{ github.event.inputs.test_environment || 'local' }}
+      TZ: 'Asia/Kolkata'  # Set timezone to India Standard Time (UTC+5:30)
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
