@@ -145,16 +145,16 @@ jobs:
           
           # Helper function to find report directories
           find_report_dirs() {
-            find . -maxdepth 1 -type d -name "playwright-web-report-*" 2>/dev/null || true
+            find . -maxdepth 1 -type d -name "report-*" 2>/dev/null || true
           }
           
           # Helper function to generate URLs
           generate_report_urls() {
-            local first_dir=$(find . -maxdepth 1 -type d -name "playwright-web-report-*" -print -quit 2>/dev/null | sed 's|^\./||')
+            local first_dir=$(find . -maxdepth 1 -type d -name "report-*" -print -quit 2>/dev/null | sed 's|^\./||')
             local custom_url=""
             
-            if [ -n "$first_dir" ] && [ -f "$first_dir/PlaywrightAutomationTestResult.html" ]; then
-              custom_url="https://storage.googleapis.com/${BUCKET_NAME}/${GCS_FOLDER}/${first_dir}/PlaywrightAutomationTestResult.html"
+            if [ -n "$first_dir" ] && [ -f "$first_dir/TestResult.html" ]; then
+              custom_url="https://storage.googleapis.com/${BUCKET_NAME}/${GCS_FOLDER}/${first_dir}/TestResult.html"
             fi
             
             echo "gcs_folder=${GCS_FOLDER}" >> $GITHUB_OUTPUT

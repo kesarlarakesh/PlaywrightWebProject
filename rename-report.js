@@ -1,6 +1,6 @@
 /**
  * Post-test script to rename HTML report file
- * Run this script after tests complete to rename index.html to PlaywrightAutomationTestResult.html
+ * Run this script after tests complete to rename index.html to TestResult.html
  */
 
 const fs = require('fs');
@@ -10,7 +10,7 @@ const path = require('path');
 function findLatestReportFolder() {
   const currentDir = process.cwd();
   const folders = fs.readdirSync(currentDir)
-    .filter(name => name.startsWith('playwright-web-report-'))
+    .filter(name => name.startsWith('report-'))
     .map(name => {
       try {
         return {
@@ -32,14 +32,14 @@ function findLatestReportFolder() {
 // Function to rename the HTML report
 function renameHtmlReport(reportFolder) {
   const originalPath = path.join(reportFolder, 'index.html');
-  const newPath = path.join(reportFolder, 'PlaywrightAutomationTestResult.html');
+  const newPath = path.join(reportFolder, 'TestResult.html');
   
   console.log(`📁 Looking for report in: ${reportFolder}`);
   
   if (fs.existsSync(originalPath)) {
     try {
       fs.renameSync(originalPath, newPath);
-      console.log(`✅ Successfully renamed: index.html → PlaywrightAutomationTestResult.html`);
+      console.log(`✅ Successfully renamed: index.html → TestResult.html`);
       console.log(`📄 Report available at: ${newPath}`);
     } catch (error) {
       console.error(`❌ Error renaming file: ${error.message}`);
