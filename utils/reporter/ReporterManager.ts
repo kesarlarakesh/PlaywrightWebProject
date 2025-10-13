@@ -52,9 +52,8 @@ export class ReporterManager {
     const day = String(now.getDate()).padStart(2, '0');
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
     
-    return `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
+    return `${year}-${month}-${day}_${hours}-${minutes}`;
   }
 
   /**
@@ -80,10 +79,10 @@ export class ReporterManager {
 
   /**
    * Generate current report folder path with consistent timestamp
-   * @param baseFolder - Base folder name (default: 'playwright-web-report')
+   * @param baseFolder - Base folder name (default: 'report')
    * @returns Current report folder path with timestamp
    */
-  static generateCurrentReportFolder(baseFolder: string = 'playwright-web-report'): string {
+  static generateCurrentReportFolder(baseFolder: string = 'report'): string {
     const environment = process.env.TEST_ENV || 'prod';
     const useLambdaTest = process.env[LAMBDATEST_ENV_VARS.USE_LAMBDATEST] === 'true';
     const platform = useLambdaTest ? PLATFORM_IDENTIFIERS.LAMBDATEST : PLATFORM_IDENTIFIERS.LOCAL;
@@ -133,7 +132,7 @@ export class ReporterManager {
       
       const reportDirs = fs.readdirSync(outputBaseDir)
         .filter(dir => {
-          if (!dir.startsWith('playwright-web-report-') || dir === currentReportFolderName) {
+          if (!dir.startsWith('report-') || dir === currentReportFolderName) {
             return false;
           }
           try {
