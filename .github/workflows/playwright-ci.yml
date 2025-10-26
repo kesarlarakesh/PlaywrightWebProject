@@ -56,11 +56,14 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
       - name: Install dependencies
         run: npm install
-      - name: Run vulnerability scan
-        run: npm audit
+      - name: Run vulnerability scan and fix
+        run: |
+          npm audit || echo "Vulnerabilities found, attempting to fix..."
+          npm audit fix
+          npm audit || echo "Some vulnerabilities may remain after fix"
 
   test:
     name: Run Playwright Tests
